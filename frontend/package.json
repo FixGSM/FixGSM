@@ -60,7 +60,7 @@
     "start": "craco start",
     "build": "craco build",
     "test": "craco test",
-    "serve": "http-server build -p 8080 -c-1 --cors -g"
+    "serve": "npx serve -s build -l 8080"
   },
   "browserslist": {
     "production": [

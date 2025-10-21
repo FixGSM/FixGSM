@@ -3,7 +3,14 @@ module.exports = {
     darkMode: ["class"],
     content: [
     "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
+    "./public/index.html",
+    "./src/pages/**/*.{js,jsx,ts,tsx}",
+    "./src/components/**/*.{js,jsx,ts,tsx}"
+  ],
+  safelist: [
+    {
+      pattern: /(p|m|gap|space)-(0|1|2|3|4|5|6|8|10|12|16|20|24)/,
+    },
   ],
   theme: {
   	extend: {
