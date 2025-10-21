@@ -8,5 +8,5 @@ cmds = ["yarn install --frozen-lockfile"]
 cmds = ["yarn build"]
 
 [start]
-cmd = "yarn serve"
+cmd = "npx http-server build -p 8080 -c-1 --cors -g -S"
 
