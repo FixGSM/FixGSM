@@ -9,7 +9,13 @@ module.exports = {
   ],
   safelist: [
     {
-      pattern: /(p|m|gap|space)-(0|1|2|3|4|5|6|8|10|12|16|20|24)/,
+      pattern: /(p|m|gap|space|w|h)-(0|1|2|3|4|5|6|7|8|10|12|14|16|20|24|28|32|36|40|48|56|64)/,
+    },
+    {
+      pattern: /text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl)/,
+    },
+    {
+      pattern: /rounded-(none|sm|md|lg|xl|2xl|3xl|full)/,
     },
   ],
   theme: {
