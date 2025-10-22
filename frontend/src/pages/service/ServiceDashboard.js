@@ -662,7 +662,7 @@ const ServiceDashboard = () => {
                               onChange={(e) => setFormData({ ...formData, device_model: e.target.value })}
                               required
                               placeholder="Samsung S20"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                               data-testid="device-model-input"
                             />
                           </div>
@@ -676,7 +676,7 @@ const ServiceDashboard = () => {
                                 value={formData.imei}
                                 onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
                                 placeholder="IMEI"
-                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                                 data-testid="imei-input"
                               />
                             </div>
@@ -693,7 +693,7 @@ const ServiceDashboard = () => {
                               value={formData.visual_aspect}
                               onChange={(e) => setFormData({ ...formData, visual_aspect: e.target.value })}
                               placeholder="Stare dispozitiv"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                               data-testid="visual-aspect-input"
                             />
                           </div>
@@ -762,7 +762,7 @@ const ServiceDashboard = () => {
                               value={formData.access_code}
                               onChange={(e) => setFormData({ ...formData, access_code: e.target.value })}
                               placeholder="PIN/Parolă"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                               data-testid="access-code-input"
                             />
                           </div>
@@ -775,7 +775,7 @@ const ServiceDashboard = () => {
                               value={formData.colors}
                               onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
                               placeholder="Culoare dispozitiv"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                               data-testid="colors-input"
                             />
                           </div>
@@ -788,7 +788,7 @@ const ServiceDashboard = () => {
                               value={formData.defect_cause}
                               onChange={(e) => setFormData({ ...formData, defect_cause: e.target.value })}
                               placeholder="Ex: cădere"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                               data-testid="defect-cause-input"
                             />
                           </div>
@@ -830,7 +830,7 @@ const ServiceDashboard = () => {
                                 value={formData.estimated_cost}
                                 onChange={(e) => setFormData({ ...formData, estimated_cost: Number(e.target.value) })}
                                 placeholder="0"
-                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300"
+                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300"
                                 data-testid="estimated-cost-input"
                               />
                     </div>
@@ -840,7 +840,7 @@ const ServiceDashboard = () => {
                             <div className="relative">
                               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                               <Select value={formData.location_id} onValueChange={(value) => setFormData({ ...formData, location_id: value })}>
-                                <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300" data-testid="location-select">
+                                <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-16 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300" data-testid="location-select">
                                   <SelectValue placeholder="Selectează locația" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-800 border-slate-700 rounded-xl">
