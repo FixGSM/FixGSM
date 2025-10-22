@@ -98,24 +98,53 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!ticketData?.client_phone) {
       toast.error('Numărul de telefon al clientului nu este disponibil');
       return;
     }
 
-    // Format phone number for WhatsApp
-    const cleanPhone = ticketData.client_phone.replace(/\D/g, '');
-    const whatsappPhone = cleanPhone.startsWith('0') ? `40${cleanPhone.substring(1)}` : cleanPhone;
-    
-    // Create WhatsApp Web URL with pre-filled message (direct to web interface)
-    const whatsappUrl = `https://web.whatsapp.com/send?phone=${whatsappPhone}&text=${encodeURIComponent(generatedMessage)}`;
-    
-    // Open WhatsApp Web directly in new tab
-    window.open(whatsappUrl, '_blank');
-    
-    toast.success('WhatsApp Web deschis! Mesajul este pre-completat - doar apasă Send!');
-    onClose();
+    if (!generatedMessage) {
+      toast.error('Nu există mesaj generat pentru trimitere');
+      return;
+    }
+
+    try {
+      // Send message via WhatsApp Business API
+      const response = await axios.post(`${API}/tenant/integrations/whatsapp/send-message`, {
+        phone_number: ticketData.client_phone,
+        message: generatedMessage
+      }, authHeaders);
+
+      if (response.data.success) {
+        toast.success('✅ Mesaj WhatsApp trimis cu succes!');
+        onClose();
+      } else {
+        toast.error(`❌ Eroare la trimiterea mesajului: ${response.data.message}`);
+      }
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error);
+      
+      // Fallback to WhatsApp Web if API fails
+      if (error.response?.status === 400 && error.response?.data?.detail?.includes('not configured')) {
+        toast.error('WhatsApp Business API nu este configurat. Folosind WhatsApp Web...');
+        
+        // Format phone number for WhatsApp Web
+        const cleanPhone = ticketData.client_phone.replace(/\D/g, '');
+        const whatsappPhone = cleanPhone.startsWith('0') ? `40${cleanPhone.substring(1)}` : cleanPhone;
+        
+        // Create WhatsApp Web URL with pre-filled message
+        const whatsappUrl = `https://web.whatsapp.com/send?phone=${whatsappPhone}&text=${encodeURIComponent(generatedMessage)}`;
+        
+        // Open WhatsApp Web directly in new tab
+        window.open(whatsappUrl, '_blank');
+        
+        toast.success('WhatsApp Web deschis! Mesajul este pre-completat - doar apasă Send!');
+        onClose();
+      } else {
+        toast.error('Eroare la trimiterea mesajului WhatsApp');
+      }
+    }
   };
 
   const resetForm = () => {
@@ -268,14 +297,14 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
                     size="sm"
                     onClick={handleSendMessage}
                     className="bg-green-600 hover:bg-green-700 text-white"
-                    disabled={!ticketData?.client_phone}
+                    disabled={!ticketData?.client_phone || !generatedMessage}
                   >
                     <MessageSquare className="w-4 h-4 mr-1" />
-                    Trimite pe WhatsApp Web
+                    Trimite pe WhatsApp
                   </Button>
                   {ticketData?.client_phone && (
                     <p className="text-green-300 text-xs mt-1">
-                      ✓ Se deschide direct în WhatsApp Web cu mesajul pre-completat
+                      ✓ Se trimite automat via WhatsApp Business API
                     </p>
                   )}
                   {!ticketData?.client_phone && (

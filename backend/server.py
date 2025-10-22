@@ -5636,6 +5636,262 @@ async def clear_logs(
         "deleted_count": result.deleted_count
     }
 
+# ============ TENANT INTEGRATIONS ENDPOINTS ============
+
+@api_router.get("/tenant/integrations")
+async def get_tenant_integrations(current_user: dict = Depends(get_current_user)):
+    """Get all integrations for the current tenant"""
+    tenant_id = current_user.get("tenant_id")
+    
+    try:
+        # Get WhatsApp integration
+        whatsapp_config = await db["tenant_integrations"].find_one({
+            "tenant_id": tenant_id,
+            "integration_type": "whatsapp"
+        })
+        
+        # Get other integrations (for future use)
+        smartbill_config = await db["tenant_integrations"].find_one({
+            "tenant_id": tenant_id,
+            "integration_type": "smartbill"
+        })
+        
+        sms_config = await db["tenant_integrations"].find_one({
+            "tenant_id": tenant_id,
+            "integration_type": "sms"
+        })
+        
+        email_config = await db["tenant_integrations"].find_one({
+            "tenant_id": tenant_id,
+            "integration_type": "email"
+        })
+        
+        return {
+            "whatsapp": {
+                "enabled": whatsapp_config.get("enabled", False) if whatsapp_config else False,
+                "phone_number_id": whatsapp_config.get("phone_number_id", "") if whatsapp_config else "",
+                "access_token": whatsapp_config.get("access_token", "") if whatsapp_config else "",
+                "business_account_id": whatsapp_config.get("business_account_id", "") if whatsapp_config else "",
+                "webhook_verified": whatsapp_config.get("webhook_verified", False) if whatsapp_config else False
+            },
+            "smartbill": {
+                "enabled": smartbill_config.get("enabled", False) if smartbill_config else False,
+                "api_key": smartbill_config.get("api_key", "") if smartbill_config else "",
+                "company_id": smartbill_config.get("company_id", "") if smartbill_config else ""
+            },
+            "sms": {
+                "enabled": sms_config.get("enabled", False) if sms_config else False,
+                "provider": sms_config.get("provider", "") if sms_config else "",
+                "api_key": sms_config.get("api_key", "") if sms_config else ""
+            },
+            "email": {
+                "enabled": email_config.get("enabled", False) if email_config else False,
+                "smtp_server": email_config.get("smtp_server", "") if email_config else "",
+                "smtp_port": email_config.get("smtp_port", 587) if email_config else 587,
+                "username": email_config.get("username", "") if email_config else "",
+                "password": email_config.get("password", "") if email_config else ""
+            }
+        }
+    except Exception as e:
+        print(f"Error fetching integrations: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching integrations")
+
+@api_router.put("/tenant/integrations/whatsapp")
+async def update_whatsapp_integration(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update WhatsApp Business API configuration for tenant"""
+    tenant_id = current_user.get("tenant_id")
+    
+    try:
+        # Validate required fields
+        if not data.get("phone_number_id") or not data.get("access_token"):
+            raise HTTPException(status_code=400, detail="Phone Number ID and Access Token are required")
+        
+        # Update or create WhatsApp integration
+        await db["tenant_integrations"].update_one(
+            {
+                "tenant_id": tenant_id,
+                "integration_type": "whatsapp"
+            },
+            {
+                "$set": {
+                    "tenant_id": tenant_id,
+                    "integration_type": "whatsapp",
+                    "phone_number_id": data.get("phone_number_id"),
+                    "access_token": data.get("access_token"),
+                    "business_account_id": data.get("business_account_id", ""),
+                    "enabled": data.get("enabled", False),
+                    "webhook_verified": False,  # Reset webhook verification
+                    "updated_at": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "message": "WhatsApp configuration updated successfully",
+            "integration_type": "whatsapp"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating WhatsApp integration: {e}")
+        raise HTTPException(status_code=500, detail="Error updating WhatsApp configuration")
+
+@api_router.post("/tenant/integrations/whatsapp/test")
+async def test_whatsapp_integration(current_user: dict = Depends(get_current_user)):
+    """Test WhatsApp Business API connection"""
+    tenant_id = current_user.get("tenant_id")
+    
+    try:
+        # Get WhatsApp configuration
+        whatsapp_config = await db["tenant_integrations"].find_one({
+            "tenant_id": tenant_id,
+            "integration_type": "whatsapp"
+        })
+        
+        if not whatsapp_config:
+            raise HTTPException(status_code=404, detail="WhatsApp integration not configured")
+        
+        if not whatsapp_config.get("enabled"):
+            raise HTTPException(status_code=400, detail="WhatsApp integration is disabled")
+        
+        # Test API connection (simplified test)
+        import requests
+        
+        phone_number_id = whatsapp_config.get("phone_number_id")
+        access_token = whatsapp_config.get("access_token")
+        
+        # Test with a simple API call to get phone number info
+        url = f"https://graph.facebook.com/v18.0/{phone_number_id}"
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            # Update webhook verification status
+            await db["tenant_integrations"].update_one(
+                {
+                    "tenant_id": tenant_id,
+                    "integration_type": "whatsapp"
+                },
+                {
+                    "$set": {
+                        "webhook_verified": True,
+                        "last_test_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            return {
+                "success": True,
+                "message": "WhatsApp API connection successful",
+                "phone_number_info": response.json()
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"WhatsApp API test failed: {response.text}",
+                "status_code": response.status_code
+            }
+            
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "message": f"Network error testing WhatsApp API: {str(e)}"
+        }
+    except Exception as e:
+        print(f"Error testing WhatsApp integration: {e}")
+        raise HTTPException(status_code=500, detail="Error testing WhatsApp connection")
+
+@api_router.post("/tenant/integrations/whatsapp/send-message")
+async def send_whatsapp_message(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Send WhatsApp message using Business API"""
+    tenant_id = current_user.get("tenant_id")
+    
+    try:
+        # Get WhatsApp configuration
+        whatsapp_config = await db["tenant_integrations"].find_one({
+            "tenant_id": tenant_id,
+            "integration_type": "whatsapp"
+        })
+        
+        if not whatsapp_config or not whatsapp_config.get("enabled"):
+            raise HTTPException(status_code=400, detail="WhatsApp integration not configured or disabled")
+        
+        phone_number = data.get("phone_number")
+        message = data.get("message")
+        
+        if not phone_number or not message:
+            raise HTTPException(status_code=400, detail="Phone number and message are required")
+        
+        # Format phone number (remove non-digits and add country code if needed)
+        clean_phone = ''.join(filter(str.isdigit, phone_number))
+        if clean_phone.startswith('0'):
+            clean_phone = '40' + clean_phone[1:]  # Add Romania country code
+        elif not clean_phone.startswith('40'):
+            clean_phone = '40' + clean_phone
+        
+        # Send message via WhatsApp Business API
+        import requests
+        
+        url = f"https://graph.facebook.com/v18.0/{whatsapp_config.get('phone_number_id')}/messages"
+        headers = {
+            "Authorization": f"Bearer {whatsapp_config.get('access_token')}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "text",
+            "text": {
+                "body": message
+            }
+        }
+        
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            # Log the message
+            await db["whatsapp_messages"].insert_one({
+                "tenant_id": tenant_id,
+                "phone_number": clean_phone,
+                "message": message,
+                "status": "sent",
+                "whatsapp_message_id": response.json().get("messages", [{}])[0].get("id"),
+                "sent_at": datetime.utcnow()
+            })
+            
+            return {
+                "success": True,
+                "message": "WhatsApp message sent successfully",
+                "whatsapp_message_id": response.json().get("messages", [{}])[0].get("id")
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to send WhatsApp message: {response.text}",
+                "status_code": response.status_code
+            }
+            
+    except requests.exceptions.RequestException as e:
+        return {
+            "success": False,
+            "message": f"Network error sending WhatsApp message: {str(e)}"
+        }
+    except Exception as e:
+        print(f"Error sending WhatsApp message: {e}")
+        raise HTTPException(status_code=500, detail="Error sending WhatsApp message")
+
 # Include the router in the main app
 app.include_router(api_router)
 
