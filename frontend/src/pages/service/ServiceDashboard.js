@@ -16,6 +16,7 @@ import PaymentAlert from '@/components/PaymentAlert';
 import AnnouncementBanner from '@/components/AnnouncementBanner';
 import AIAssistant from '@/components/AIAssistant';
 import MessageGenerator from '@/components/MessageGenerator';
+import StatisticsAnalyzer from '@/components/StatisticsAnalyzer';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -59,6 +60,7 @@ const ServiceDashboard = () => {
   const [actionsDropdownPosition, setActionsDropdownPosition] = useState({ top: 0, left: 0 });
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [messageGeneratorOpen, setMessageGeneratorOpen] = useState(false);
+  const [statisticsAnalyzerOpen, setStatisticsAnalyzerOpen] = useState(false);
   const [selectedTicketForMessage, setSelectedTicketForMessage] = useState(null);
   const statusDropdownRef = useRef(null);
   const actionsDropdownRef = useRef(null);
@@ -84,7 +86,17 @@ const ServiceDashboard = () => {
     };
 
     window.addEventListener('createTicket', handleCreateTicket);
-    return () => window.removeEventListener('createTicket', handleCreateTicket);
+    
+    const handleOpenStatisticsAI = () => {
+      setStatisticsAnalyzerOpen(true);
+    };
+    
+    window.addEventListener('openStatisticsAI', handleOpenStatisticsAI);
+    
+    return () => {
+      window.removeEventListener('createTicket', handleCreateTicket);
+      window.removeEventListener('openStatisticsAI', handleOpenStatisticsAI);
+    };
   }, []);
 
   // Close dropdown when clicking outside
@@ -1142,6 +1154,14 @@ const ServiceDashboard = () => {
               setSelectedTicketForMessage(null);
             }}
             ticketData={selectedTicketForMessage}
+          />
+        )}
+
+        {/* Statistics Analyzer */}
+        {statisticsAnalyzerOpen && (
+          <StatisticsAnalyzer
+            isOpen={statisticsAnalyzerOpen}
+            onClose={() => setStatisticsAnalyzerOpen(false)}
           />
         )}
       </div>

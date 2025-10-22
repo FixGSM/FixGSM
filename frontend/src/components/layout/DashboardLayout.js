@@ -16,7 +16,8 @@ import {
   Bell,
   CheckCircle,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  BarChart3
 } from 'lucide-react';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -84,6 +85,13 @@ const DashboardLayout = ({ children }) => {
       path: '/ai-chat',
       allowedTypes: ['tenant_owner', 'employee'],
       action: null
+    },
+    {
+      icon: BarChart3,
+      label: 'Analiză Statistici AI',
+      path: '/statistics-ai',
+      allowedTypes: ['tenant_owner', 'employee'],
+      action: 'statisticsAI'
     },
     {
       icon: Settings,
@@ -266,6 +274,14 @@ const DashboardLayout = ({ children }) => {
                     text: 'text-violet-400',
                     iconBg: 'from-violet-500 to-purple-500'
                   };
+                case '/statistics-ai':
+                  return {
+                    bg: 'from-indigo-500/30 to-blue-500/30',
+                    border: 'border-indigo-500/40',
+                    shadow: 'shadow-indigo-500/20',
+                    text: 'text-indigo-400',
+                    iconBg: 'from-indigo-500 to-blue-500'
+                  };
                 case '/settings':
                   return {
                     bg: 'from-gray-500/30 to-slate-500/30',
@@ -304,8 +320,12 @@ const DashboardLayout = ({ children }) => {
                   if (item.action === 'createTicket') {
                     // Trigger create ticket action
                     window.dispatchEvent(new CustomEvent('createTicket'));
+                  } else if (item.action === 'statisticsAI') {
+                    // Trigger statistics AI action
+                    window.dispatchEvent(new CustomEvent('openStatisticsAI'));
+                  } else {
+                    navigate(item.path);
                   }
-                  navigate(item.path);
                   setMobileOpen(false);
                 }}
                 data-testid={`menu-${item.path}`}
