@@ -684,6 +684,14 @@ const SettingsPage = () => {
     }
   });
 
+  // Integration UI State
+  const [expandedIntegrations, setExpandedIntegrations] = useState({
+    whatsapp: false,
+    smartbill: false,
+    sms: false,
+    email: false
+  });
+
   // Roles State
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState({});
@@ -1077,6 +1085,29 @@ const SettingsPage = () => {
         ...prev[integrationType],
         [field]: value
       }
+    }));
+  };
+
+  const handleIntegrationToggle = (integrationType, enabled) => {
+    setIntegrations(prev => ({
+      ...prev,
+      [integrationType]: {
+        ...prev[integrationType],
+        enabled: enabled
+      }
+    }));
+
+    // Auto-expand when enabling, auto-collapse when disabling
+    setExpandedIntegrations(prev => ({
+      ...prev,
+      [integrationType]: enabled
+    }));
+  };
+
+  const toggleIntegrationExpansion = (integrationType) => {
+    setExpandedIntegrations(prev => ({
+      ...prev,
+      [integrationType]: !prev[integrationType]
     }));
   };
 
@@ -1894,246 +1925,382 @@ const SettingsPage = () => {
 
       case 'integrations':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div>
               <h2 className="text-2xl font-bold text-white">Integrări Platforme</h2>
               <p className="text-slate-400">Configurează integrările cu servicii externe pentru automatizare</p>
             </div>
 
             {/* WhatsApp Business API */}
-            <Card className="glass-effect border border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <MessageSquare className="w-6 h-6 mr-3 text-green-400" />
-                  WhatsApp Business API
-                  {integrations.whatsapp.webhook_verified && (
-                    <Badge className="ml-2 bg-green-500/20 text-green-300 border-green-500/30">
-                      ✓ Verificat
-                    </Badge>
-                  )}
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Configurează WhatsApp pentru trimiterea automată de mesaje către clienți
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="text-green-400 mt-0.5">💡</div>
+            <Card className={`glass-effect border transition-all duration-300 ${
+              integrations.whatsapp.enabled 
+                ? 'border-green-500/30 bg-green-500/5' 
+                : 'border-white/10'
+            }`}>
+              <CardHeader 
+                className="cursor-pointer"
+                onClick={() => toggleIntegrationExpansion('whatsapp')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-6 h-6 text-green-400" />
                     <div>
-                      <h4 className="text-green-300 font-semibold mb-1">Cum funcționează?</h4>
-                      <p className="text-slate-300 text-sm">
-                        Configurează API-ul WhatsApp Business pentru a trimite mesaje automate către clienți. 
-                        Fiecare tenant poate configura propriile credențiale WhatsApp.
-                      </p>
+                      <CardTitle className="text-white">WhatsApp Business API</CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Trimitere automată mesaje către clienți
+                      </CardDescription>
                     </div>
+                    {integrations.whatsapp.webhook_verified && (
+                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+                        ✓ Verificat
+                      </Badge>
+                    )}
                   </div>
-                </div>
-
-                <form onSubmit={handleWhatsAppConfigUpdate} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-slate-300">Phone Number ID</Label>
-                      <Input
-                        value={integrations.whatsapp.phone_number_id}
-                        onChange={(e) => handleIntegrationChange('whatsapp', 'phone_number_id', e.target.value)}
-                        placeholder="123456789012345"
-                        className="bg-slate-800 border-slate-700 text-white"
-                        required
-                      />
-                      <p className="text-xs text-slate-400 mt-1">ID-ul numărului de telefon din WhatsApp Business</p>
-                    </div>
-                    <div>
-                      <Label className="text-slate-300">Access Token</Label>
-                      <Input
-                        type="password"
-                        value={integrations.whatsapp.access_token}
-                        onChange={(e) => handleIntegrationChange('whatsapp', 'access_token', e.target.value)}
-                        placeholder="EAAxxxxxxxxxxxxx"
-                        className="bg-slate-800 border-slate-700 text-white"
-                        required
-                      />
-                      <p className="text-xs text-slate-400 mt-1">Token-ul de acces pentru WhatsApp Business API</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-slate-300">Business Account ID</Label>
-                    <Input
-                      value={integrations.whatsapp.business_account_id}
-                      onChange={(e) => handleIntegrationChange('whatsapp', 'business_account_id', e.target.value)}
-                      placeholder="123456789012345"
-                      className="bg-slate-800 border-slate-700 text-white"
-                    />
-                    <p className="text-xs text-slate-400 mt-1">ID-ul contului de business WhatsApp (opțional)</p>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                    <div>
-                      <Label className="text-white font-semibold">Activează WhatsApp</Label>
-                      <p className="text-sm text-slate-400 mt-1">Permite trimiterea automată de mesaje WhatsApp</p>
-                    </div>
+                  <div className="flex items-center gap-3">
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={integrations.whatsapp.enabled}
-                        onChange={(e) => handleIntegrationChange('whatsapp', 'enabled', e.target.checked)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleIntegrationToggle('whatsapp', e.target.checked);
+                        }}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                     </label>
+                    <div className={`transform transition-transform duration-300 ${
+                      expandedIntegrations.whatsapp ? 'rotate-180' : ''
+                    }`}>
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              {expandedIntegrations.whatsapp && (
+                <CardContent className="pt-0 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-green-400 mt-0.5">💡</div>
+                      <div>
+                        <h4 className="text-green-300 font-semibold mb-1">Cum funcționează?</h4>
+                        <p className="text-slate-300 text-sm">
+                          Configurează API-ul WhatsApp Business pentru a trimite mesaje automate către clienți. 
+                          Fiecare tenant poate configura propriile credențiale WhatsApp.
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button 
-                      type="submit" 
-                      className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Salvează Configurarea
-                    </Button>
-                    <Button 
-                      type="button"
-                      onClick={handleWhatsAppTest}
-                      variant="outline"
-                      className="border-green-500/30 text-green-300 hover:bg-green-500/20"
-                      disabled={!integrations.whatsapp.phone_number_id || !integrations.whatsapp.access_token}
-                    >
-                      Testează Conexiunea
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
+                  <form onSubmit={handleWhatsAppConfigUpdate} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-slate-300">Phone Number ID</Label>
+                        <Input
+                          value={integrations.whatsapp.phone_number_id}
+                          onChange={(e) => handleIntegrationChange('whatsapp', 'phone_number_id', e.target.value)}
+                          placeholder="123456789012345"
+                          className="bg-slate-800 border-slate-700 text-white"
+                          required
+                        />
+                        <p className="text-xs text-slate-400 mt-1">ID-ul numărului de telefon din WhatsApp Business</p>
+                      </div>
+                      <div>
+                        <Label className="text-slate-300">Access Token</Label>
+                        <Input
+                          type="password"
+                          value={integrations.whatsapp.access_token}
+                          onChange={(e) => handleIntegrationChange('whatsapp', 'access_token', e.target.value)}
+                          placeholder="EAAxxxxxxxxxxxxx"
+                          className="bg-slate-800 border-slate-700 text-white"
+                          required
+                        />
+                        <p className="text-xs text-slate-400 mt-1">Token-ul de acces pentru WhatsApp Business API</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-slate-300">Business Account ID</Label>
+                      <Input
+                        value={integrations.whatsapp.business_account_id}
+                        onChange={(e) => handleIntegrationChange('whatsapp', 'business_account_id', e.target.value)}
+                        placeholder="123456789012345"
+                        className="bg-slate-800 border-slate-700 text-white"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">ID-ul contului de business WhatsApp (opțional)</p>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button 
+                        type="submit" 
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Salvează Configurarea
+                      </Button>
+                      <Button 
+                        type="button"
+                        onClick={handleWhatsAppTest}
+                        variant="outline"
+                        className="border-green-500/30 text-green-300 hover:bg-green-500/20"
+                        disabled={!integrations.whatsapp.phone_number_id || !integrations.whatsapp.access_token}
+                      >
+                        Testează Conexiunea
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              )}
             </Card>
 
             {/* SmartBill Integration */}
-            <Card className="glass-effect border border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <FileText className="w-6 h-6 mr-3 text-blue-400" />
-                  SmartBill API
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Integrează cu SmartBill pentru generarea automată de facturi
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="text-blue-400 mt-0.5">📋</div>
+            <Card className={`glass-effect border transition-all duration-300 ${
+              integrations.smartbill.enabled 
+                ? 'border-blue-500/30 bg-blue-500/5' 
+                : 'border-white/10'
+            }`}>
+              <CardHeader 
+                className="cursor-pointer"
+                onClick={() => toggleIntegrationExpansion('smartbill')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-6 h-6 text-blue-400" />
                     <div>
-                      <h4 className="text-blue-300 font-semibold mb-1">În dezvoltare</h4>
-                      <p className="text-slate-300 text-sm">
-                        Integrarea cu SmartBill va permite generarea automată de facturi și gestionarea contabilității.
-                      </p>
+                      <CardTitle className="text-white">SmartBill API</CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Generare automată facturi și contabilitate
+                      </CardDescription>
+                    </div>
+                    <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                      În dezvoltare
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={integrations.smartbill.enabled}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleIntegrationToggle('smartbill', e.target.checked);
+                        }}
+                        className="sr-only peer"
+                        disabled
+                      />
+                      <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 opacity-50 cursor-not-allowed"></div>
+                    </label>
+                    <div className={`transform transition-transform duration-300 ${
+                      expandedIntegrations.smartbill ? 'rotate-180' : ''
+                    }`}>
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
                   </div>
                 </div>
-
-                <div>
-                  <Label className="text-slate-300">SmartBill API Key</Label>
-                  <Input
-                    placeholder="În curând disponibil..."
-                    disabled
-                    className="bg-slate-800 border-slate-700 text-slate-500"
-                  />
-                </div>
-
-                <Button disabled className="w-full bg-slate-700 text-slate-400 cursor-not-allowed">
-                  <FileText className="w-4 h-4 mr-2" />
-                  În dezvoltare
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* SMS Gateway */}
-            <Card className="glass-effect border border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <MessageSquare className="w-6 h-6 mr-3 text-purple-400" />
-                  SMS Gateway
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Configurează serviciul SMS pentru notificări automate
-                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="text-purple-400 mt-0.5">📱</div>
-                    <div>
-                      <h4 className="text-purple-300 font-semibold mb-1">În dezvoltare</h4>
-                      <p className="text-slate-300 text-sm">
-                        Integrarea cu servicii SMS va permite trimiterea de notificări automate către clienți.
-                      </p>
+              
+              {expandedIntegrations.smartbill && (
+                <CardContent className="pt-0 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-blue-400 mt-0.5">📋</div>
+                      <div>
+                        <h4 className="text-blue-300 font-semibold mb-1">În dezvoltare</h4>
+                        <p className="text-slate-300 text-sm">
+                          Integrarea cu SmartBill va permite generarea automată de facturi și gestionarea contabilității.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <Label className="text-slate-300">SMS Provider</Label>
-                  <Select disabled>
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-500">
-                      <SelectValue placeholder="În curând disponibil..." />
-                    </SelectTrigger>
-                  </Select>
-                </div>
-
-                <Button disabled className="w-full bg-slate-700 text-slate-400 cursor-not-allowed">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  În dezvoltare
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Email SMTP */}
-            <Card className="glass-effect border border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Mail className="w-6 h-6 mr-3 text-cyan-400" />
-                  Email SMTP
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Configurează serverul SMTP pentru trimiterea de emailuri automate
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="text-cyan-400 mt-0.5">📧</div>
-                    <div>
-                      <h4 className="text-cyan-300 font-semibold mb-1">În dezvoltare</h4>
-                      <p className="text-slate-300 text-sm">
-                        Configurarea SMTP va permite trimiterea de emailuri automate către clienți și echipă.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-slate-300">SMTP Server</Label>
+                    <Label className="text-slate-300">SmartBill API Key</Label>
                     <Input
                       placeholder="În curând disponibil..."
                       disabled
                       className="bg-slate-800 border-slate-700 text-slate-500"
                     />
                   </div>
-                  <div>
-                    <Label className="text-slate-300">Port</Label>
-                    <Input
-                      placeholder="587"
-                      disabled
-                      className="bg-slate-800 border-slate-700 text-slate-500"
-                    />
+
+                  <Button disabled className="w-full bg-slate-700 text-slate-400 cursor-not-allowed">
+                    <FileText className="w-4 h-4 mr-2" />
+                    În dezvoltare
+                  </Button>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* SMS Gateway */}
+            <Card className={`glass-effect border transition-all duration-300 ${
+              integrations.sms.enabled 
+                ? 'border-purple-500/30 bg-purple-500/5' 
+                : 'border-white/10'
+            }`}>
+              <CardHeader 
+                className="cursor-pointer"
+                onClick={() => toggleIntegrationExpansion('sms')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-6 h-6 text-purple-400" />
+                    <div>
+                      <CardTitle className="text-white">SMS Gateway</CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Notificări SMS automate către clienți
+                      </CardDescription>
+                    </div>
+                    <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                      În dezvoltare
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={integrations.sms.enabled}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleIntegrationToggle('sms', e.target.checked);
+                        }}
+                        className="sr-only peer"
+                        disabled
+                      />
+                      <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 opacity-50 cursor-not-allowed"></div>
+                    </label>
+                    <div className={`transform transition-transform duration-300 ${
+                      expandedIntegrations.sms ? 'rotate-180' : ''
+                    }`}>
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
+              </CardHeader>
+              
+              {expandedIntegrations.sms && (
+                <CardContent className="pt-0 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-purple-400 mt-0.5">📱</div>
+                      <div>
+                        <h4 className="text-purple-300 font-semibold mb-1">În dezvoltare</h4>
+                        <p className="text-slate-300 text-sm">
+                          Integrarea cu servicii SMS va permite trimiterea de notificări automate către clienți.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                <Button disabled className="w-full bg-slate-700 text-slate-400 cursor-not-allowed">
-                  <Mail className="w-4 h-4 mr-2" />
-                  În dezvoltare
-                </Button>
-              </CardContent>
+                  <div>
+                    <Label className="text-slate-300">SMS Provider</Label>
+                    <Select disabled>
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-500">
+                        <SelectValue placeholder="În curând disponibil..." />
+                      </SelectTrigger>
+                    </Select>
+                  </div>
+
+                  <Button disabled className="w-full bg-slate-700 text-slate-400 cursor-not-allowed">
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    În dezvoltare
+                  </Button>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Email SMTP */}
+            <Card className={`glass-effect border transition-all duration-300 ${
+              integrations.email.enabled 
+                ? 'border-cyan-500/30 bg-cyan-500/5' 
+                : 'border-white/10'
+            }`}>
+              <CardHeader 
+                className="cursor-pointer"
+                onClick={() => toggleIntegrationExpansion('email')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-6 h-6 text-cyan-400" />
+                    <div>
+                      <CardTitle className="text-white">Email SMTP</CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Trimitere automată emailuri către clienți și echipă
+                      </CardDescription>
+                    </div>
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                      În dezvoltare
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={integrations.email.enabled}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleIntegrationToggle('email', e.target.checked);
+                        }}
+                        className="sr-only peer"
+                        disabled
+                      />
+                      <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600 opacity-50 cursor-not-allowed"></div>
+                    </label>
+                    <div className={`transform transition-transform duration-300 ${
+                      expandedIntegrations.email ? 'rotate-180' : ''
+                    }`}>
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              {expandedIntegrations.email && (
+                <CardContent className="pt-0 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-cyan-400 mt-0.5">📧</div>
+                      <div>
+                        <h4 className="text-cyan-300 font-semibold mb-1">În dezvoltare</h4>
+                        <p className="text-slate-300 text-sm">
+                          Configurarea SMTP va permite trimiterea de emailuri automate către clienți și echipă.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-300">SMTP Server</Label>
+                      <Input
+                        placeholder="În curând disponibil..."
+                        disabled
+                        className="bg-slate-800 border-slate-700 text-slate-500"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Port</Label>
+                      <Input
+                        placeholder="587"
+                        disabled
+                        className="bg-slate-800 border-slate-700 text-slate-500"
+                      />
+                    </div>
+                  </div>
+
+                  <Button disabled className="w-full bg-slate-700 text-slate-400 cursor-not-allowed">
+                    <Mail className="w-4 h-4 mr-2" />
+                    În dezvoltare
+                  </Button>
+                </CardContent>
+              )}
             </Card>
           </div>
         );
