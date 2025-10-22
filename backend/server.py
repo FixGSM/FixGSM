@@ -886,6 +886,72 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
         by_status=by_status
     )
 
+@api_router.get("/statistics")
+async def get_statistics(current_user: dict = Depends(get_current_user)):
+    """Get comprehensive statistics for the statistics page"""
+    if current_user["user_type"] not in ["tenant_owner", "employee"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    tenant_id = current_user["tenant_id"]
+    
+    try:
+        # Get all tickets for this tenant
+        tickets = await db.tickets.find({"tenant_id": tenant_id}).to_list(10000)
+        
+        # Calculate basic stats
+        total_tickets = len(tickets)
+        completed_tickets = len([t for t in tickets if t.get("status", "").lower().includes("finalizat")])
+        total_revenue = sum(t.get("estimated_cost", 0) for t in tickets)
+        
+        # Get unique clients
+        unique_clients = set()
+        for ticket in tickets:
+            if ticket.get("client_name"):
+                unique_clients.add(ticket.get("client_name"))
+        active_clients = len(unique_clients)
+        
+        # Calculate average repair time (simplified)
+        avg_repair_time = 24  # hours - placeholder calculation
+        
+        # Get device statistics
+        device_stats = {}
+        problem_stats = {}
+        
+        for ticket in tickets:
+            device = ticket.get("device_model", "Unknown")
+            if device in device_stats:
+                device_stats[device] += 1
+            else:
+                device_stats[device] = 1
+                
+            problem = ticket.get("reported_issue", "")
+            if "ecran" in problem.lower() or "display" in problem.lower():
+                problem_stats["Ecran spart"] = problem_stats.get("Ecran spart", 0) + 1
+            elif "baterie" in problem.lower():
+                problem_stats["Probleme baterie"] = problem_stats.get("Probleme baterie", 0) + 1
+            elif "software" in problem.lower():
+                problem_stats["Probleme software"] = problem_stats.get("Probleme software", 0) + 1
+        
+        # Sort by frequency
+        top_devices = sorted(device_stats.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_problems = sorted(problem_stats.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        return {
+            "total_tickets": total_tickets,
+            "completed_tickets": completed_tickets,
+            "total_revenue": total_revenue,
+            "active_clients": active_clients,
+            "avg_repair_time": avg_repair_time,
+            "top_devices": top_devices,
+            "top_problems": top_problems,
+            "revenue_trend": [],  # Placeholder for future implementation
+            "ticket_distribution": {}  # Placeholder for future implementation
+        }
+        
+    except Exception as e:
+        print(f"Error fetching statistics: {e}")
+        raise HTTPException(status_code=500, detail="Error fetching statistics")
+
 @api_router.post("/tenant/locations", response_model=Location)
 async def create_location(
     data: LocationCreate,

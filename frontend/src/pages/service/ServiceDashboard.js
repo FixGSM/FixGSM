@@ -1065,7 +1065,7 @@ const ServiceDashboard = () => {
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="text-white font-medium text-sm">
+                          <div className="text-white font-medium text-sm whitespace-nowrap">
                             {ticket.device_model}
                             {ticket.imei && (
                               <span className="text-slate-400 text-xs ml-2">IMEI: {ticket.imei}</span>
@@ -1079,7 +1079,7 @@ const ServiceDashboard = () => {
                           <div className="text-slate-300 text-sm line-clamp-2">{toText(ticket.service_operations) || '-'}</div>
                         </td>
                         <td className="p-4">
-                          <div className="text-white font-medium text-sm">
+                          <div className="text-white font-medium text-sm whitespace-nowrap">
                             {toText(ticket.client_name)}
                             {ticket.client_phone && (
                               <span className="text-slate-400 text-xs ml-2">{toText(ticket.client_phone)}</span>
