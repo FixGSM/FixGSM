@@ -162,11 +162,11 @@ const LoginPage = () => {
                 <p className="text-slate-400">Introdu datele tale pentru a accesa platforma</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6" data-testid="login-form">
-                <div className="space-y-2">
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }} data-testid="login-form">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <Label htmlFor="email" className="text-slate-300 font-medium">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <Input
                       id="email"
                       name="email"
@@ -174,7 +174,8 @@ const LoginPage = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="pl-10 bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 focus:border-cyan-500 focus:ring-cyan-500/20"
+                      style={{ paddingLeft: '3rem' }}
+                      className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 focus:border-cyan-500 focus:ring-cyan-500/20"
                       data-testid="email-input"
                       placeholder="email@exemplu.com"
                       autoComplete="username"
@@ -182,10 +183,10 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <Label htmlFor="password" className="text-slate-300 font-medium">Parolă</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <Input
                       id="password"
                       name="password"
@@ -193,7 +194,8 @@ const LoginPage = () => {
                       value={formData.password}
                       onChange={handleChange}
                       required
-                      className="pl-10 pr-10 bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 focus:border-cyan-500 focus:ring-cyan-500/20"
+                      style={{ paddingLeft: '3rem', paddingRight: '3rem' }}
+                      className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 focus:border-cyan-500 focus:ring-cyan-500/20"
                       data-testid="password-input"
                       placeholder="••••••••"
                       autoComplete="current-password"
@@ -201,7 +203,7 @@ const LoginPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -213,6 +215,7 @@ const LoginPage = () => {
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-xl h-12 text-base font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/25"
                   disabled={loading}
                   data-testid="login-btn"
+                  style={{ marginTop: '1rem' }}
                 >
                   {loading ? (
                     <>
@@ -227,7 +230,7 @@ const LoginPage = () => {
                   )}
                 </Button>
 
-                <div className="text-center">
+                <div className="text-center" style={{ marginTop: '1rem' }}>
                   <Button
                     type="button"
                     variant="link"

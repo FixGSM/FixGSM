@@ -1,21 +1,22 @@
 @echo off
-echo ========================================
-echo    FixGSM Platform - Stopping Servers
-echo ========================================
+echo ===================================
+echo Stopping FixGSM Development Servers
+echo ===================================
 echo.
 
-echo Stopping Node.js processes...
-taskkill /f /im node.exe >nul 2>&1
+REM Stop Python (Backend)
+echo [1/2] Stopping Backend Server...
+taskkill /F /FI "WINDOWTITLE eq Backend Server*" > nul 2>&1
+taskkill /F /IM python.exe /FI "MEMUSAGE gt 10000" > nul 2>&1
 
-echo Stopping Python processes...
-taskkill /f /im python.exe >nul 2>&1
-
-echo Stopping Uvicorn processes...
-taskkill /f /im uvicorn.exe >nul 2>&1
+REM Stop Node (Frontend)
+echo [2/2] Stopping Frontend Server...
+taskkill /F /FI "WINDOWTITLE eq Frontend Server*" > nul 2>&1
+taskkill /F /IM node.exe /FI "MEMUSAGE gt 10000" > nul 2>&1
 
 echo.
-echo ========================================
-echo    All servers have been stopped
-echo ========================================
+echo ===================================
+echo All servers stopped!
+echo ===================================
 echo.
 pause
