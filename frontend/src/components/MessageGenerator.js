@@ -99,9 +99,22 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
   };
 
   const handleSendMessage = () => {
-    // Here you would integrate with your messaging system
-    // For now, just show a success message
-    toast.success('Mesaj trimis către client!');
+    if (!ticketData?.client_phone) {
+      toast.error('Numărul de telefon al clientului nu este disponibil');
+      return;
+    }
+
+    // Format phone number for WhatsApp
+    const cleanPhone = ticketData.client_phone.replace(/\D/g, '');
+    const whatsappPhone = cleanPhone.startsWith('0') ? `40${cleanPhone.substring(1)}` : cleanPhone;
+    
+    // Create WhatsApp URL with pre-filled message
+    const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(generatedMessage)}`;
+    
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
+    
+    toast.success('WhatsApp deschis cu mesajul pre-completat!');
     onClose();
   };
 
@@ -157,6 +170,13 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
                   <div>
                     <span className="text-slate-400">Cost estimat:</span>
                     <span className="text-white ml-2">{ticketData.estimated_cost} RON</span>
+                  </div>
+                )}
+                {ticketData.client_phone && (
+                  <div className="col-span-2">
+                    <span className="text-slate-400">Telefon:</span>
+                    <span className="text-green-400 ml-2 font-mono">{ticketData.client_phone}</span>
+                    <span className="text-green-300 text-xs ml-2">✓ WhatsApp disponibil</span>
                   </div>
                 )}
               </div>
@@ -248,10 +268,16 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
                     size="sm"
                     onClick={handleSendMessage}
                     className="bg-green-600 hover:bg-green-700 text-white"
+                    disabled={!ticketData?.client_phone}
                   >
-                    <Send className="w-4 h-4 mr-1" />
-                    Trimite
+                    <MessageSquare className="w-4 h-4 mr-1" />
+                    Trimite pe WhatsApp
                   </Button>
+                  {!ticketData?.client_phone && (
+                    <p className="text-slate-400 text-xs mt-1">
+                      ⚠️ Numărul de telefon nu este disponibil pentru această fișă
+                    </p>
+                  )}
                 </div>
               </div>
               
