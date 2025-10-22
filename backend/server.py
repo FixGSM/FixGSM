@@ -4224,6 +4224,213 @@ def parse_diagnostic_response(response_text: str) -> dict:
             "warranty_impact": "nu"
         }
 
+@api_router.post("/ai/generate-message")
+async def generate_client_message(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate professional client communication messages"""
+    if current_user["user_type"] not in ["admin", "tenant_owner", "employee"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        message_type = request.get("message_type", "")
+        ticket_data = request.get("ticket_data", {})
+        custom_context = request.get("custom_context", "")
+        
+        if not message_type:
+            raise HTTPException(status_code=400, detail="Message type is required")
+        
+        # Get AI configuration
+        ai_global_config = await db["platform_settings"].find_one({"settings_id": "ai_config"})
+        if not ai_global_config:
+            raise HTTPException(status_code=500, detail="AI configuration not found")
+        
+        provider = ai_global_config.get("provider", "google_gemini")
+        api_key = ai_global_config.get("api_key")
+        model_name = ai_global_config.get("model", "gemini-2.5-flash")
+        
+        if not api_key:
+            raise HTTPException(status_code=500, detail=f"{provider.title()} API key not configured")
+        
+        # Build message generation prompt
+        message_prompt = build_message_prompt(message_type, ticket_data, custom_context)
+        
+        # Generate message using AI
+        if provider == "google_gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name)
+            
+            response = model.generate_content(message_prompt)
+            response_text = response.text
+            
+        elif provider in ["openai", "azure_openai", "custom_llm"]:
+            import openai
+            
+            if provider == "azure_openai":
+                base_url = ai_global_config.get("openai_base_url", "")
+                organization = ai_global_config.get("openai_organization", "")
+                client = openai.OpenAI(api_key=api_key, base_url=base_url, organization=organization)
+            elif provider == "custom_llm":
+                custom_endpoint = ai_global_config.get("custom_endpoint_url", "")
+                client = openai.OpenAI(api_key=api_key, base_url=custom_endpoint)
+            else:
+                client = openai.OpenAI(api_key=api_key)
+            
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "Ești specialist în comunicare profesională pentru service GSM. Generează mesaje clare, profesionale și prietenoase pentru clienți."},
+                    {"role": "user", "content": message_prompt}
+                ],
+                max_tokens=1000,
+                temperature=0.7
+            )
+            response_text = response.choices[0].message.content
+            
+        elif provider == "anthropic":
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            
+            response = client.messages.create(
+                model=model_name,
+                max_tokens=1000,
+                temperature=0.7,
+                messages=[
+                    {"role": "user", "content": message_prompt}
+                ]
+            )
+            response_text = response.content[0].text
+        
+        else:
+            raise HTTPException(status_code=500, detail=f"Unsupported AI provider: {provider}")
+        
+        # Clean and format response
+        message_content = clean_message_response(response_text)
+        
+        return {
+            "success": True,
+            "message": message_content,
+            "message_type": message_type,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Error generating message: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating message: {str(e)}")
+
+def build_message_prompt(message_type: str, ticket_data: dict, custom_context: str) -> str:
+    """Build context-specific message generation prompt"""
+    
+    base_prompt = """Ești specialist în comunicare profesională pentru service GSM.
+Generează mesaje clare, profesionale și prietenoase pentru clienți.
+
+PRINCIPII:
+- Ton prietenos dar profesional
+- Informații clare și concise
+- Răspunzi ÎNTOTDEAUNA în română
+- Eviti jargonul tehnic complex
+- Incluzi detalii relevante (timp, cost, status)"""
+    
+    client_name = ticket_data.get("client_name", "Domnul/Dna")
+    device_model = ticket_data.get("device_model", "dispozitivul")
+    ticket_id = ticket_data.get("ticket_id", "")
+    status = ticket_data.get("status", "")
+    estimated_cost = ticket_data.get("estimated_cost", 0)
+    estimated_time = ticket_data.get("estimated_time", "")
+    
+    if message_type == "status_update":
+        return f"""{base_prompt}
+        
+SARCINA: Generează mesaj de actualizare status pentru client.
+
+CONTEXT:
+- Client: {client_name}
+- Dispozitiv: {device_model}
+- Fișa: {ticket_id}
+- Status nou: {status}
+- Cost estimat: {estimated_cost} RON
+- Timp estimat: {estimated_time}
+
+Generează mesaj profesional pentru notificare status."""
+    
+    elif message_type == "cost_estimate":
+        return f"""{base_prompt}
+        
+SARCINA: Generează mesaj cu estimare cost pentru client.
+
+CONTEXT:
+- Client: {client_name}
+- Dispozitiv: {device_model}
+- Fișa: {ticket_id}
+- Cost estimat: {estimated_cost} RON
+- Timp estimat: {estimated_time}
+- Context suplimentar: {custom_context}
+
+Generează mesaj profesional cu estimare cost și timp."""
+    
+    elif message_type == "completion_notification":
+        return f"""{base_prompt}
+        
+SARCINA: Generează mesaj de finalizare reparație pentru client.
+
+CONTEXT:
+- Client: {client_name}
+- Dispozitiv: {device_model}
+- Fișa: {ticket_id}
+- Status: Finalizat
+- Cost final: {estimated_cost} RON
+- Context suplimentar: {custom_context}
+
+Generează mesaj de finalizare cu instrucțiuni de ridicare."""
+    
+    elif message_type == "delay_notification":
+        return f"""{base_prompt}
+        
+SARCINA: Generează mesaj de întârziere pentru client.
+
+CONTEXT:
+- Client: {client_name}
+- Dispozitiv: {device_model}
+- Fișa: {ticket_id}
+- Motiv întârziere: {custom_context}
+- Timp estimat nou: {estimated_time}
+
+Generează mesaj de întârziere cu scuze și explicații."""
+    
+    elif message_type == "custom":
+        return f"""{base_prompt}
+        
+SARCINA: Generează mesaj personalizat pentru client.
+
+CONTEXT:
+- Client: {client_name}
+- Dispozitiv: {device_model}
+- Fișa: {ticket_id}
+- Context personalizat: {custom_context}
+
+Generează mesaj personalizat conform contextului specificat."""
+    
+    return base_prompt
+
+def clean_message_response(response_text: str) -> str:
+    """Clean and format message response"""
+    import re
+    
+    # Remove any JSON blocks or code formatting
+    cleaned = re.sub(r'```json.*?```', '', response_text, flags=re.DOTALL)
+    cleaned = re.sub(r'```.*?```', '', cleaned, flags=re.DOTALL)
+    
+    # Remove any remaining JSON-like structures
+    cleaned = re.sub(r'\{.*?\}', '', cleaned, flags=re.DOTALL)
+    
+    # Clean up whitespace
+    cleaned = re.sub(r'\n\s*\n', '\n\n', cleaned)
+    cleaned = cleaned.strip()
+    
+    return cleaned
+
 @api_router.get("/admin/ai-statistics")
 async def get_ai_statistics(current_user: dict = Depends(get_current_user)):
     """Get AI usage statistics (admin only)"""

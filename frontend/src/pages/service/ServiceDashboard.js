@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, DollarSign, TrendingUp, Clock, Plus, Search, Smartphone, User, Phone, Cpu, Shield, AlertTriangle, Wrench, Eye, Palette, Zap, MapPin, ChevronDown, Printer, Download, Sparkles } from 'lucide-react';
+import { FileText, DollarSign, TrendingUp, Clock, Plus, Search, Smartphone, User, Phone, Cpu, Shield, AlertTriangle, Wrench, Eye, Palette, Zap, MapPin, ChevronDown, Printer, Download, Sparkles, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentAlert from '@/components/PaymentAlert';
 import AnnouncementBanner from '@/components/AnnouncementBanner';
 import AIAssistant from '@/components/AIAssistant';
+import MessageGenerator from '@/components/MessageGenerator';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -57,6 +58,8 @@ const ServiceDashboard = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, openUp: false });
   const [actionsDropdownPosition, setActionsDropdownPosition] = useState({ top: 0, left: 0 });
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [messageGeneratorOpen, setMessageGeneratorOpen] = useState(false);
+  const [selectedTicketForMessage, setSelectedTicketForMessage] = useState(null);
   const statusDropdownRef = useRef(null);
   const actionsDropdownRef = useRef(null);
 
@@ -232,6 +235,11 @@ const ServiceDashboard = () => {
     });
     
     toast.success(`Câmpul ${mappedField} a fost completat!`);
+  };
+
+  const handleOpenMessageGenerator = (ticket) => {
+    setSelectedTicketForMessage(ticket);
+    setMessageGeneratorOpen(true);
   };
 
   const getStatusColor = (status) => {
@@ -973,6 +981,23 @@ const ServiceDashboard = () => {
                     <div className="text-slate-400 text-xs">Cu certificat de garanție</div>
                   </div>
                 </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenMessageGenerator(openActionsDropdown);
+                    setOpenActionsDropdown(null);
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors flex items-center gap-3 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-base flex-shrink-0 group-hover:bg-purple-500/30 transition-colors">
+                    <MessageSquare className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-medium text-sm">Mesaj Client</div>
+                    <div className="text-slate-400 text-xs">Generează mesaj AI pentru client</div>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -1100,6 +1125,18 @@ const ServiceDashboard = () => {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Message Generator */}
+        {messageGeneratorOpen && selectedTicketForMessage && (
+          <MessageGenerator
+            isOpen={messageGeneratorOpen}
+            onClose={() => {
+              setMessageGeneratorOpen(false);
+              setSelectedTicketForMessage(null);
+            }}
+            ticketData={selectedTicketForMessage}
+          />
         )}
       </div>
     </DashboardLayout>
