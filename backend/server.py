@@ -1866,6 +1866,15 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
                 base_url=base_url,
                 organization=organization
             )
+        elif provider == "custom_llm":
+            import openai
+            custom_endpoint = ai_global_config.get("custom_endpoint_url", "")
+            if not custom_endpoint:
+                raise HTTPException(status_code=500, detail="Custom LLM endpoint URL not configured")
+            client = openai.OpenAI(
+                api_key=api_key,
+                base_url=custom_endpoint
+            )
         else:
             raise HTTPException(status_code=500, detail=f"Unsupported AI provider: {provider}")
         
@@ -2046,6 +2055,17 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
                 temperature=0.7
             )
             response_text = response.choices[0].message.content
+        elif provider == "custom_llm":
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": conversation_context.split("Utilizator:")[0]},
+                    {"role": "user", "content": request.message}
+                ],
+                max_tokens=2000,
+                temperature=0.7
+            )
+            response_text = response.choices[0].message.content
 
         # Persist messages
         user_msg = {
@@ -2131,6 +2151,12 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
             else:
                 input_cost = (input_tokens / 1000) * 0.03
                 output_cost = (output_tokens / 1000) * 0.06
+        elif provider == "custom_llm":
+            # Custom LLM pricing from configuration
+            custom_input_cost = ai_global_config.get("custom_input_cost", 0)
+            custom_output_cost = ai_global_config.get("custom_output_cost", 0)
+            input_cost = (input_tokens / 1000) * custom_input_cost
+            output_cost = (output_tokens / 1000) * custom_output_cost
         
         total_cost = input_cost + output_cost
         
@@ -3711,7 +3737,10 @@ async def get_admin_ai_config(current_user: dict = Depends(get_current_user)):
             "model": ai_config.get("model", "gemini-2.5-flash"),
             "enabled": ai_config.get("enabled", True),
             "openai_base_url": ai_config.get("openai_base_url", ""),
-            "openai_organization": ai_config.get("openai_organization", "")
+            "openai_organization": ai_config.get("openai_organization", ""),
+            "custom_endpoint_url": ai_config.get("custom_endpoint_url", ""),
+            "custom_input_cost": ai_config.get("custom_input_cost", 0),
+            "custom_output_cost": ai_config.get("custom_output_cost", 0)
         }
     else:
         # Fallback to environment variable
@@ -3721,7 +3750,10 @@ async def get_admin_ai_config(current_user: dict = Depends(get_current_user)):
             "model": "gemini-2.5-flash",
             "enabled": True,
             "openai_base_url": "",
-            "openai_organization": ""
+            "openai_organization": "",
+            "custom_endpoint_url": "",
+            "custom_input_cost": 0,
+            "custom_output_cost": 0
         }
 
 @api_router.put("/admin/ai-config")
@@ -3742,6 +3774,9 @@ async def update_admin_ai_config(
         "enabled": data.get("enabled", True),
         "openai_base_url": data.get("openai_base_url", ""),
         "openai_organization": data.get("openai_organization", ""),
+        "custom_endpoint_url": data.get("custom_endpoint_url", ""),
+        "custom_input_cost": data.get("custom_input_cost", 0),
+        "custom_output_cost": data.get("custom_output_cost", 0),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     

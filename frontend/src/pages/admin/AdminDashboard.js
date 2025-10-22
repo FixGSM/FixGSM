@@ -35,7 +35,10 @@ const AdminDashboard = () => {
     model: 'gemini-2.5-flash', 
     enabled: true,
     openai_base_url: '',
-    openai_organization: ''
+    openai_organization: '',
+    custom_endpoint_url: '',
+    custom_input_cost: 0,
+    custom_output_cost: 0
   });
   const [aiStats, setAiStats] = useState({
     last_24h: { total_calls: 0, total_cost: 0 },
@@ -1566,6 +1569,7 @@ const AdminDashboard = () => {
                         <SelectItem value="openai">OpenAI</SelectItem>
                         <SelectItem value="anthropic">Anthropic Claude</SelectItem>
                         <SelectItem value="azure_openai">Azure OpenAI</SelectItem>
+                        <SelectItem value="custom_llm">LLM Proprietar/Local</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-slate-400 text-xs mt-1">Selectează furnizorul AI pentru platformă</p>
@@ -1577,6 +1581,7 @@ const AdminDashboard = () => {
                       {aiConfig.provider === 'openai' && 'OpenAI API Key'}
                       {aiConfig.provider === 'anthropic' && 'Anthropic API Key'}
                       {aiConfig.provider === 'azure_openai' && 'Azure OpenAI API Key'}
+                      {aiConfig.provider === 'custom_llm' && 'LLM Proprietar API Key'}
                     </Label>
                     <Input
                       type="password"
@@ -1587,6 +1592,7 @@ const AdminDashboard = () => {
                         aiConfig.provider === 'google_gemini' ? 'AIzaSy...' :
                         aiConfig.provider === 'openai' ? 'sk-...' :
                         aiConfig.provider === 'anthropic' ? 'sk-ant-...' :
+                        aiConfig.provider === 'custom_llm' ? 'sk-... sau token personalizat' :
                         'sk-...'
                       }
                     />
@@ -1629,9 +1635,61 @@ const AdminDashboard = () => {
                             <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Azure)</SelectItem>
                           </>
                         )}
+                        {aiConfig.provider === 'custom_llm' && (
+                          <>
+                            <SelectItem value="gpt-oss-20b">GPT OSS 20B</SelectItem>
+                            <SelectItem value="llama-2-70b">Llama 2 70B</SelectItem>
+                            <SelectItem value="llama-3-70b">Llama 3 70B</SelectItem>
+                            <SelectItem value="mistral-7b">Mistral 7B</SelectItem>
+                            <SelectItem value="custom-model">Model Personalizat</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Custom LLM specific fields */}
+                  {aiConfig.provider === 'custom_llm' && (
+                    <>
+                      <div>
+                        <Label className="text-slate-300">LLM Endpoint URL</Label>
+                        <Input
+                          type="url"
+                          value={aiConfig.custom_endpoint_url}
+                          onChange={(e) => setAiConfig({ ...aiConfig, custom_endpoint_url: e.target.value })}
+                          className="bg-slate-800/50 border-slate-700 text-white rounded-xl"
+                          placeholder="http://localhost:8000/v1/chat/completions"
+                        />
+                        <p className="text-slate-400 text-xs mt-1">URL-ul endpoint-ului LLM (compatibil OpenAI API)</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-slate-300">Cost per 1K Tokens (Input)</Label>
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={aiConfig.custom_input_cost}
+                          onChange={(e) => setAiConfig({ ...aiConfig, custom_input_cost: parseFloat(e.target.value) || 0 })}
+                          className="bg-slate-800/50 border-slate-700 text-white rounded-xl"
+                          placeholder="0.0001"
+                        />
+                        <p className="text-slate-400 text-xs mt-1">Cost pentru 1K tokeni de input (opțional)</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-slate-300">Cost per 1K Tokens (Output)</Label>
+                        <Input
+                          type="number"
+                          step="0.000001"
+                          value={aiConfig.custom_output_cost}
+                          onChange={(e) => setAiConfig({ ...aiConfig, custom_output_cost: parseFloat(e.target.value) || 0 })}
+                          className="bg-slate-800/50 border-slate-700 text-white rounded-xl"
+                          placeholder="0.0002"
+                        />
+                        <p className="text-slate-400 text-xs mt-1">Cost pentru 1K tokeni de output (opțional)</p>
+                      </div>
+                    </>
+                  )}
 
                   {/* Azure OpenAI specific fields */}
                   {aiConfig.provider === 'azure_openai' && (
