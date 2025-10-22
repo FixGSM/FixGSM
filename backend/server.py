@@ -1829,6 +1829,9 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
     if not ai_config.get("enabled", True):
         raise HTTPException(status_code=403, detail="AI Assistant is disabled for your organization")
     
+    # Initialize memorized_flag outside try block
+    memorized_flag = False
+    
     try:
         import google.generativeai as genai
         import os
@@ -1934,7 +1937,6 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
         """
         
         # Memory capture: messages starting with prefixes will be stored as knowledge
-        memorized_flag = False
         message_trim = (request.message or "").strip()
         lower = message_trim.lower()
         mem_prefixes = ["mem:", "memorize:", "memoreaza:", "rezolvare:"]
