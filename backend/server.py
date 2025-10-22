@@ -1762,6 +1762,11 @@ async def get_conversation_messages(conversation_id: str, current_user: dict = D
     msgs = await db.ai_messages.find({"conversation_id": conversation_id}, {"_id": 0}).sort("timestamp", 1).to_list(10000)
     return ConversationMessagesResponse(conversation_id=conversation_id, messages=msgs)
 
+@api_router.options("/ai/chat")
+async def ai_chat_options():
+    """Handle CORS preflight for AI chat endpoint"""
+    return {"message": "OK"}
+
 @api_router.post("/ai/chat", response_model=ChatResponse)
 async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current_user)):
     """
@@ -4452,10 +4457,18 @@ async def clear_logs(
 # Include the router in the main app
 app.include_router(api_router)
 
+# CORS Configuration
+cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(',')
+# Clean up any whitespace
+cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+
+# Log CORS configuration for debugging
+logger.info(f"CORS Origins configured: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(','),
+    allow_origins=cors_origins,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
