@@ -5,6 +5,8 @@ module.exports = {
       "./src/**/*.{js,jsx,ts,tsx}",
       "./public/index.html",
     ],
+    // Disable purging completely
+    purge: false,
   theme: {
   	extend: {
   		borderRadius: {

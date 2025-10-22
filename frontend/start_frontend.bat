@@ -1,8 +1,12 @@
 @echo off
-echo Setting environment variables for frontend...
-set REACT_APP_BACKEND_URL=http://localhost:8000
-set REACT_APP_ENABLE_VISUAL_EDITS=false
-set FAST_REFRESH=false
-
+echo ===================================
+echo Starting FixGSM Frontend (Dev Mode)
+echo ===================================
+echo.
+echo Installing dependencies if needed...
+call yarn install
+echo.
 echo Starting React development server...
-npm start
+echo Frontend will be available at: http://localhost:3000
+echo.
+call yarn start
