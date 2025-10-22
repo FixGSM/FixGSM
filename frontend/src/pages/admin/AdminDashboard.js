@@ -29,7 +29,14 @@ const AdminDashboard = () => {
   const [tenants, setTenants] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [serverInfo, setServerInfo] = useState(null);
-  const [aiConfig, setAiConfig] = useState({ api_key: '', model: 'gemini-2.5-flash', enabled: true });
+  const [aiConfig, setAiConfig] = useState({ 
+    provider: 'google_gemini', 
+    api_key: '', 
+    model: 'gemini-2.5-flash', 
+    enabled: true,
+    openai_base_url: '',
+    openai_organization: ''
+  });
   const [aiStats, setAiStats] = useState({
     last_24h: { total_calls: 0, total_cost: 0 },
     all_time: { total_calls: 0, total_cost: 0 },
@@ -1549,13 +1556,39 @@ const AdminDashboard = () => {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-slate-300">Google Gemini API Key</Label>
+                    <Label className="text-slate-300">Furnizor AI</Label>
+                    <Select value={aiConfig.provider} onValueChange={(value) => setAiConfig({ ...aiConfig, provider: value })}>
+                      <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectItem value="google_gemini">Google Gemini</SelectItem>
+                        <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+                        <SelectItem value="azure_openai">Azure OpenAI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-slate-400 text-xs mt-1">Selectează furnizorul AI pentru platformă</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">
+                      {aiConfig.provider === 'google_gemini' && 'Google Gemini API Key'}
+                      {aiConfig.provider === 'openai' && 'OpenAI API Key'}
+                      {aiConfig.provider === 'anthropic' && 'Anthropic API Key'}
+                      {aiConfig.provider === 'azure_openai' && 'Azure OpenAI API Key'}
+                    </Label>
                     <Input
                       type="password"
                       value={aiConfig.api_key}
                       onChange={(e) => setAiConfig({ ...aiConfig, api_key: e.target.value })}
                       className="bg-slate-800/50 border-slate-700 text-white rounded-xl"
-                      placeholder="AIzaSy..."
+                      placeholder={
+                        aiConfig.provider === 'google_gemini' ? 'AIzaSy...' :
+                        aiConfig.provider === 'openai' ? 'sk-...' :
+                        aiConfig.provider === 'anthropic' ? 'sk-ant-...' :
+                        'sk-...'
+                      }
                     />
                     <p className="text-slate-400 text-xs mt-1">Această cheie va fi folosită de toți tenanții</p>
                   </div>
@@ -1567,12 +1600,67 @@ const AdminDashboard = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-slate-800 border-slate-700">
-                        <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                        <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
-                        <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
+                        {aiConfig.provider === 'google_gemini' && (
+                          <>
+                            <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                            <SelectItem value="gemini-pro">Gemini Pro</SelectItem>
+                            <SelectItem value="gemini-ultra">Gemini Ultra</SelectItem>
+                          </>
+                        )}
+                        {aiConfig.provider === 'openai' && (
+                          <>
+                            <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                            <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                            <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                          </>
+                        )}
+                        {aiConfig.provider === 'anthropic' && (
+                          <>
+                            <SelectItem value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</SelectItem>
+                            <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</SelectItem>
+                            <SelectItem value="claude-3-opus-20240229">Claude 3 Opus</SelectItem>
+                          </>
+                        )}
+                        {aiConfig.provider === 'azure_openai' && (
+                          <>
+                            <SelectItem value="gpt-4o">GPT-4o (Azure)</SelectItem>
+                            <SelectItem value="gpt-4o-mini">GPT-4o Mini (Azure)</SelectItem>
+                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Azure)</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Azure OpenAI specific fields */}
+                  {aiConfig.provider === 'azure_openai' && (
+                    <>
+                      <div>
+                        <Label className="text-slate-300">Azure OpenAI Base URL</Label>
+                        <Input
+                          type="url"
+                          value={aiConfig.openai_base_url}
+                          onChange={(e) => setAiConfig({ ...aiConfig, openai_base_url: e.target.value })}
+                          className="bg-slate-800/50 border-slate-700 text-white rounded-xl"
+                          placeholder="https://your-resource.openai.azure.com/"
+                        />
+                        <p className="text-slate-400 text-xs mt-1">URL-ul endpoint-ului Azure OpenAI</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-slate-300">Azure OpenAI Organization (Optional)</Label>
+                        <Input
+                          type="text"
+                          value={aiConfig.openai_organization}
+                          onChange={(e) => setAiConfig({ ...aiConfig, openai_organization: e.target.value })}
+                          className="bg-slate-800/50 border-slate-700 text-white rounded-xl"
+                          placeholder="org-..."
+                        />
+                        <p className="text-slate-400 text-xs mt-1">ID-ul organizației Azure OpenAI</p>
+                      </div>
+                    </>
+                  )}
 
                   <div className="flex items-center gap-3 p-4 bg-slate-800/50 rounded-xl">
                     <input

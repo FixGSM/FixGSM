@@ -1833,26 +1833,41 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
     memorized_flag = False
     
     try:
-        import google.generativeai as genai
-        import os
-        
-        # Get API key from database (admin config) or environment variable as fallback
+        # Get AI configuration from database
         ai_global_config = await db["platform_settings"].find_one({"settings_id": "ai_config"})
-        api_key = None
         
-        if ai_global_config and ai_global_config.get("api_key"):
-            api_key = ai_global_config.get("api_key")
-        else:
-            # Fallback to environment variable
-            api_key = os.environ.get('GOOGLE_GEMINI_API_KEY')
+        if not ai_global_config:
+            raise HTTPException(status_code=500, detail="AI configuration not found. Please configure it in Admin Panel → AI Config")
+        
+        provider = ai_global_config.get("provider", "google_gemini")
+        api_key = ai_global_config.get("api_key")
+        model_name = ai_global_config.get("model", "gemini-2.5-flash")
         
         if not api_key:
-            raise HTTPException(status_code=500, detail="Google Gemini API key not configured. Please configure it in Admin Panel → AI Config")
+            raise HTTPException(status_code=500, detail=f"{provider.title()} API key not configured. Please configure it in Admin Panel → AI Config")
         
-        genai.configure(api_key=api_key)
-        
-        # Inițializează modelul Gemini
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # Initialize AI provider based on configuration
+        if provider == "google_gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name)
+        elif provider == "openai":
+            import openai
+            client = openai.OpenAI(api_key=api_key)
+        elif provider == "anthropic":
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+        elif provider == "azure_openai":
+            import openai
+            base_url = ai_global_config.get("openai_base_url", "")
+            organization = ai_global_config.get("openai_organization", "")
+            client = openai.OpenAI(
+                api_key=api_key,
+                base_url=base_url,
+                organization=organization
+            )
+        else:
+            raise HTTPException(status_code=500, detail=f"Unsupported AI provider: {provider}")
         
         # Track AI usage for statistics
         usage_id = str(uuid.uuid4())
@@ -1996,8 +2011,41 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
         # Adaugă mesajul curent
         conversation_context += f"Utilizator: {request.message}\nAI:"
         
-        # Generează răspunsul cu Google Gemini
-        response = model.generate_content(conversation_context)
+        # Generate response based on provider
+        if provider == "google_gemini":
+            response = model.generate_content(conversation_context)
+            response_text = response.text
+        elif provider == "openai":
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": conversation_context.split("Utilizator:")[0]},
+                    {"role": "user", "content": request.message}
+                ],
+                max_tokens=2000,
+                temperature=0.7
+            )
+            response_text = response.choices[0].message.content
+        elif provider == "anthropic":
+            response = client.messages.create(
+                model=model_name,
+                max_tokens=2000,
+                messages=[
+                    {"role": "user", "content": conversation_context}
+                ]
+            )
+            response_text = response.content[0].text
+        elif provider == "azure_openai":
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": conversation_context.split("Utilizator:")[0]},
+                    {"role": "user", "content": request.message}
+                ],
+                max_tokens=2000,
+                temperature=0.7
+            )
+            response_text = response.choices[0].message.content
 
         # Persist messages
         user_msg = {
@@ -2009,23 +2057,23 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
         ai_msg = {
             "conversation_id": conversation_id,
             "type": "ai",
-            "content": response.text,
+            "content": response_text,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         await db.ai_messages.insert_many([user_msg, ai_msg])
         await db.ai_conversations.update_one({"conversation_id": conversation_id}, {"$set": {"updated_at": ai_msg["timestamp"]}})
         
         return ChatResponse(
-            response=response.text,
+            response=response_text,
             timestamp=ai_msg["timestamp"],
             conversation_id=conversation_id,
             memorized=memorized_flag
         )
         
     except Exception as e:
-        print(f"Error with Google Gemini: {e}")
+        print(f"Error with AI provider: {e}")
         
-        # Fallback la răspunsuri simple dacă Google Gemini nu funcționează
+        # Fallback la răspunsuri simple dacă AI provider nu funcționează
         message_lower = request.message.lower().strip()
         
         if any(word in message_lower for word in ['salut', 'bună', 'hello', 'hi', 'bună ziua', 'buna', 'hey']):
@@ -2046,14 +2094,44 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
         usage_end_time = datetime.now(timezone.utc)
         usage_duration = (usage_end_time - usage_start_time).total_seconds()
         
-        # Estimate tokens and cost (rough estimation)
+        # Estimate tokens and cost based on provider
         input_tokens = len(request.message.split()) * 1.3  # Rough estimation
         output_tokens = len(response_text.split()) * 1.3
         total_tokens = input_tokens + output_tokens
         
-        # Gemini pricing (as of 2024): $0.000075 per 1K input tokens, $0.0003 per 1K output tokens
-        input_cost = (input_tokens / 1000) * 0.000075
-        output_cost = (output_tokens / 1000) * 0.0003
+        # Calculate costs based on provider pricing (as of 2024)
+        if provider == "google_gemini":
+            # Gemini pricing: $0.000075 per 1K input tokens, $0.0003 per 1K output tokens
+            input_cost = (input_tokens / 1000) * 0.000075
+            output_cost = (output_tokens / 1000) * 0.0003
+        elif provider == "openai":
+            # OpenAI pricing varies by model
+            if "gpt-4o" in model_name:
+                input_cost = (input_tokens / 1000) * 0.005  # $5 per 1M tokens
+                output_cost = (output_tokens / 1000) * 0.015  # $15 per 1M tokens
+            elif "gpt-4" in model_name:
+                input_cost = (input_tokens / 1000) * 0.03  # $30 per 1M tokens
+                output_cost = (output_tokens / 1000) * 0.06  # $60 per 1M tokens
+            else:  # GPT-3.5
+                input_cost = (input_tokens / 1000) * 0.0015  # $1.5 per 1M tokens
+                output_cost = (output_tokens / 1000) * 0.002  # $2 per 1M tokens
+        elif provider == "anthropic":
+            # Claude pricing
+            if "claude-3-5-sonnet" in model_name:
+                input_cost = (input_tokens / 1000) * 0.003  # $3 per 1M tokens
+                output_cost = (output_tokens / 1000) * 0.015  # $15 per 1M tokens
+            else:  # Claude 3 Opus
+                input_cost = (input_tokens / 1000) * 0.015  # $15 per 1M tokens
+                output_cost = (output_tokens / 1000) * 0.075  # $75 per 1M tokens
+        elif provider == "azure_openai":
+            # Azure OpenAI pricing (similar to OpenAI but may vary)
+            if "gpt-4o" in model_name:
+                input_cost = (input_tokens / 1000) * 0.005
+                output_cost = (output_tokens / 1000) * 0.015
+            else:
+                input_cost = (input_tokens / 1000) * 0.03
+                output_cost = (output_tokens / 1000) * 0.06
+        
         total_cost = input_cost + output_cost
         
         # Save usage statistics
@@ -2069,7 +2147,8 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
             "output_cost": round(output_cost, 6),
             "total_cost": round(total_cost, 6),
             "duration_seconds": round(usage_duration, 2),
-            "model": "gemini-2.5-flash",
+            "model": model_name,
+            "provider": provider,
             "timestamp": usage_start_time.isoformat(),
             "created_at": datetime.now(timezone.utc).isoformat()
         }
@@ -3627,16 +3706,22 @@ async def get_admin_ai_config(current_user: dict = Depends(get_current_user)):
     
     if ai_config:
         return {
+            "provider": ai_config.get("provider", "google_gemini"),
             "api_key": ai_config.get("api_key", ""),
             "model": ai_config.get("model", "gemini-2.5-flash"),
-            "enabled": ai_config.get("enabled", True)
+            "enabled": ai_config.get("enabled", True),
+            "openai_base_url": ai_config.get("openai_base_url", ""),
+            "openai_organization": ai_config.get("openai_organization", "")
         }
     else:
         # Fallback to environment variable
         return {
+            "provider": "google_gemini",
             "api_key": os.getenv("GOOGLE_GEMINI_API_KEY", ""),
             "model": "gemini-2.5-flash",
-            "enabled": True
+            "enabled": True,
+            "openai_base_url": "",
+            "openai_organization": ""
         }
 
 @api_router.put("/admin/ai-config")
@@ -3651,9 +3736,12 @@ async def update_admin_ai_config(
     # Save AI configuration to database
     ai_config_doc = {
         "settings_id": "ai_config",
+        "provider": data.get("provider", "google_gemini"),
         "api_key": data.get("api_key", ""),
         "model": data.get("model", "gemini-2.5-flash"),
         "enabled": data.get("enabled", True),
+        "openai_base_url": data.get("openai_base_url", ""),
+        "openai_organization": data.get("openai_organization", ""),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
