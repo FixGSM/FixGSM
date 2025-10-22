@@ -1929,6 +1929,17 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
         - Platformă de management pentru service GSM: fișe, clienți, reparații, piese, statusuri.
         - Public țintă: tehnicieni (junior/mediu/avansat) care vor răspunsuri aplicabile rapid.
 
+        IMPORTANT - DETECTARE ÎNTREBĂRI STATISTICI:
+        Dacă utilizatorul întreabă despre statistici, date business, analize, profitabilitate, 
+        frecvența problemelor, venituri, costuri, sau alte întrebări despre date business,
+        răspunde cu:
+        
+        "📊 Pentru întrebări despre statistici și analize business, te rog să folosești 
+        **Analiză Statistici AI** din meniul principal. Acolo poți întreba în română 
+        despre datele business și vei primi analize detaliate cu insights acționabile.
+        
+        Pentru asistență tehnică (reparații, diagnostic, probleme), sunt aici să te ajut!"
+
         FORMAT DE RĂSPUNS RECOMANDAT:
         1) Rezumat scurt al problemei (1-2 linii)
         2) Posibile cauze (ordonate de la probabil la rar)
