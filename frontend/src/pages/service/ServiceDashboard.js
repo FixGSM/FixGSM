@@ -1065,12 +1065,8 @@ const ServiceDashboard = () => {
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="text-white font-medium text-sm whitespace-nowrap">
-                            {ticket.device_model}
-                            {ticket.imei && (
-                              <span className="text-slate-400 text-xs ml-2">IMEI: {ticket.imei}</span>
-                            )}
-                          </div>
+                          <div className="text-white font-medium text-sm">{ticket.device_model}</div>
+                          <div className="text-slate-400 text-xs">IMEI: {ticket.imei || '-'}</div>
                         </td>
                         <td className="p-4">
                           <div className="text-slate-300 text-sm line-clamp-2">{toText(ticket.reported_issue)}</div>
@@ -1079,12 +1075,8 @@ const ServiceDashboard = () => {
                           <div className="text-slate-300 text-sm line-clamp-2">{toText(ticket.service_operations) || '-'}</div>
                         </td>
                         <td className="p-4">
-                          <div className="text-white font-medium text-sm whitespace-nowrap">
-                            {toText(ticket.client_name)}
-                            {ticket.client_phone && (
-                              <span className="text-slate-400 text-xs ml-2">{toText(ticket.client_phone)}</span>
-                            )}
-                          </div>
+                          <div className="text-white font-medium text-sm">{toText(ticket.client_name)}</div>
+                          <div className="text-slate-400 text-xs">{toText(ticket.client_phone)}</div>
                         </td>
                         <td className="p-4">
                           {ticket.estimated_cost !== undefined && ticket.estimated_cost !== null && ticket.estimated_cost !== '' && typeof ticket.estimated_cost !== 'object' ? (
