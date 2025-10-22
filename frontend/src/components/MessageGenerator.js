@@ -108,13 +108,13 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
     const cleanPhone = ticketData.client_phone.replace(/\D/g, '');
     const whatsappPhone = cleanPhone.startsWith('0') ? `40${cleanPhone.substring(1)}` : cleanPhone;
     
-    // Create WhatsApp URL with pre-filled message
-    const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(generatedMessage)}`;
+    // Create WhatsApp Web URL with pre-filled message (direct to web interface)
+    const whatsappUrl = `https://web.whatsapp.com/send?phone=${whatsappPhone}&text=${encodeURIComponent(generatedMessage)}`;
     
-    // Open WhatsApp in new tab
+    // Open WhatsApp Web directly in new tab
     window.open(whatsappUrl, '_blank');
     
-    toast.success('WhatsApp deschis cu mesajul pre-completat!');
+    toast.success('WhatsApp Web deschis! Mesajul este pre-completat - doar apasă Send!');
     onClose();
   };
 
@@ -271,8 +271,13 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
                     disabled={!ticketData?.client_phone}
                   >
                     <MessageSquare className="w-4 h-4 mr-1" />
-                    Trimite pe WhatsApp
+                    Trimite pe WhatsApp Web
                   </Button>
+                  {ticketData?.client_phone && (
+                    <p className="text-green-300 text-xs mt-1">
+                      ✓ Se deschide direct în WhatsApp Web cu mesajul pre-completat
+                    </p>
+                  )}
                   {!ticketData?.client_phone && (
                     <p className="text-slate-400 text-xs mt-1">
                       ⚠️ Numărul de telefon nu este disponibil pentru această fișă
