@@ -207,10 +207,31 @@ const ServiceDashboard = () => {
   };
 
   const handleAIAutoFill = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    console.log(`DEBUG: Auto-filling field ${field} with value:`, value);
+    
+    // Handle special field mappings
+    const fieldMappings = {
+      'reported_issue': 'reported_issue',
+      'service_operations': 'service_operations', 
+      'estimated_cost': 'estimated_cost',
+      'defect_cause': 'defect_cause',
+      'observations': 'observations',
+      'visual_aspect': 'visual_aspect',
+      'device_model': 'device_model'
+    };
+    
+    const mappedField = fieldMappings[field] || field;
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [mappedField]: value
+      };
+      console.log('DEBUG: Updated form data:', newData);
+      return newData;
+    });
+    
+    toast.success(`Câmpul ${mappedField} a fost completat!`);
   };
 
   const getStatusColor = (status) => {

@@ -3958,14 +3958,30 @@ def parse_structured_response(response_text: str, context_type: str) -> dict:
         import json
         import re
         
+        print(f"DEBUG: Parsing response for context_type: {context_type}")
+        print(f"DEBUG: Response text: {response_text[:500]}...")
+        
         # Try to extract JSON from response
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         if json_match:
             json_str = json_match.group()
+            print(f"DEBUG: Found JSON: {json_str[:200]}...")
             structured_data = json.loads(json_str)
             
             if context_type == "ticket_create" and "diagnostic" in structured_data:
-                return structured_data["diagnostic"]
+                diagnostic = structured_data["diagnostic"]
+                print(f"DEBUG: Extracted diagnostic: {diagnostic}")
+                
+                # Convert arrays to strings for form fields
+                result = {}
+                for key, value in diagnostic.items():
+                    if isinstance(value, list):
+                        result[key] = "; ".join(value) if value else ""
+                    else:
+                        result[key] = str(value) if value is not None else ""
+                
+                print(f"DEBUG: Processed result: {result}")
+                return result
             
             return structured_data
         
@@ -3990,6 +4006,7 @@ def parse_structured_response(response_text: str, context_type: str) -> dict:
             if cost_match:
                 structured_data["estimated_cost"] = int(cost_match.group(1))
         
+        print(f"DEBUG: Fallback result: {structured_data}")
         return structured_data
         
     except Exception as e:

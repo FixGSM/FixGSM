@@ -121,8 +121,18 @@ Ce piese ai nevoie?`;
 
       // Handle structured data for auto-fill
       if (response.data.structured_data && onAutoFill) {
+        console.log('DEBUG: Received structured data:', response.data.structured_data);
         setSuggestedFields(response.data.structured_data);
-        toast.success('Sugestii generate! Verifică câmpurile completate.');
+        
+        // Auto-fill form fields
+        Object.entries(response.data.structured_data).forEach(([field, value]) => {
+          if (value && value !== '') {
+            console.log(`DEBUG: Auto-filling ${field} with:`, value);
+            onAutoFill(field, value);
+          }
+        });
+        
+        toast.success('Câmpurile au fost completate automat!');
       }
 
     } catch (error) {
@@ -157,6 +167,20 @@ Ce piese ai nevoie?`;
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success('Copiat în clipboard!');
+  };
+
+  const getFieldDisplayName = (field) => {
+    const fieldNames = {
+      'reported_issue': 'Problema',
+      'service_operations': 'Operațiuni',
+      'estimated_cost': 'Cost',
+      'defect_cause': 'Cauza',
+      'observations': 'Observații',
+      'visual_aspect': 'Aspect vizual',
+      'device_model': 'Model',
+      'parts_needed': 'Piese necesare'
+    };
+    return fieldNames[field] || field;
   };
 
   const formatMessage = (content) => {
@@ -226,18 +250,18 @@ Ce piese ai nevoie?`;
                   
                   {message.structured_data && (
                     <div className="mt-3 space-y-2">
-                      <div className="text-xs text-slate-300 mb-2">Sugestii generate:</div>
+                      <div className="text-xs text-slate-300 mb-2">Câmpuri completate automat:</div>
                       {Object.entries(message.structured_data).map(([field, value]) => (
-                        <div key={field} className="flex items-center gap-2 bg-slate-700/50 rounded p-2">
-                          <Badge variant="outline" className="text-xs">
-                            {field}
+                        <div key={field} className="flex items-center gap-2 bg-green-700/20 border border-green-500/30 rounded p-2">
+                          <Badge variant="outline" className="text-xs bg-green-500/20 text-green-300 border-green-500/50">
+                            {getFieldDisplayName(field)}
                           </Badge>
-                          <span className="text-xs flex-1">{value}</span>
+                          <span className="text-xs flex-1 text-green-200">{value}</span>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => applySuggestion(field, value)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 text-green-400 hover:text-green-300"
                           >
                             <Check className="w-3 h-3" />
                           </Button>
@@ -245,7 +269,7 @@ Ce piese ai nevoie?`;
                             size="sm"
                             variant="ghost"
                             onClick={() => copyToClipboard(value)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 text-green-400 hover:text-green-300"
                           >
                             <Copy className="w-3 h-3" />
                           </Button>
