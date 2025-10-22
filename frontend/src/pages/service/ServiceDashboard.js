@@ -387,7 +387,7 @@ const ServiceDashboard = () => {
                   <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">{t('dashboard.totalTickets')}</p>
                   <p className="text-4xl font-bold text-white mt-3 font-['Space_Grotesk']">{stats?.total_tickets || 0}</p>
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/25 p-3">
                   <FileText className="w-8 h-8 text-white" />
                 </div>
               </div>
@@ -401,7 +401,7 @@ const ServiceDashboard = () => {
                   <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">{t('dashboard.revenue')}</p>
                   <p className="text-4xl font-bold gradient-text mt-3 font-['Space_Grotesk']">{stats?.total_cost || 0} LEI</p>
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25 p-3">
                   <DollarSign className="w-8 h-8 text-white" />
                 </div>
               </div>
@@ -422,7 +422,7 @@ const ServiceDashboard = () => {
                     }, 0)}
                   </p>
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/25">
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-cyan-500/25 p-3">
                   <TrendingUp className="w-8 h-8 text-white" />
                 </div>
               </div>
@@ -443,7 +443,7 @@ const ServiceDashboard = () => {
                     }, 0)}
                   </p>
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/25">
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/25 p-3">
                   <Clock className="w-8 h-8 text-white" />
                 </div>
               </div>
@@ -457,12 +457,13 @@ const ServiceDashboard = () => {
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                   <Input
                     placeholder={t('dashboard.search')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-slate-800/50 border-slate-700 text-white pl-12 h-12 rounded-xl focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300"
+                    style={{ paddingLeft: '3.5rem' }}
+                    className="bg-slate-800/50 border-slate-700 text-white h-12 rounded-xl focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300"
                     data-testid="search-input"
                   />
                 </div>
@@ -471,7 +472,7 @@ const ServiceDashboard = () => {
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                   <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white w-full md:w-64 h-12 pl-12 rounded-xl focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300" data-testid="location-filter">
+                    <SelectTrigger style={{ paddingLeft: '3.5rem' }} className="bg-slate-800/50 border-slate-700 text-white w-full md:w-64 h-12 rounded-xl focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300" data-testid="location-filter">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700 rounded-xl">
@@ -506,7 +507,7 @@ const ServiceDashboard = () => {
                     {/* Client Section */}
                     <div className="glass-effect rounded-2xl p-6 border border-white/10">
                       <h3 className="text-xl font-semibold text-cyan-400 flex items-center mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-cyan-500/25">
+                        <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-cyan-500/25 p-2">
                           <User className="w-5 h-5 text-white" />
                         </div>
                         Client
@@ -515,13 +516,14 @@ const ServiceDashboard = () => {
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium">Caută sau adaugă client</Label>
                           <div className="relative client-search-container">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                             <Input
                               value={formData.client_name}
                               onChange={handleClientNameChange}
                               required
                               placeholder="Nume client"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300"
+                              style={{ paddingLeft: '3.5rem' }}
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300"
                               data-testid="client-name-input"
                             />
                             {/* Client Search Dropdown */}
@@ -559,13 +561,14 @@ const ServiceDashboard = () => {
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium">Număr Telefon</Label>
                           <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                             <Input
                               value={formData.client_phone}
                               onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
                               required
                               placeholder="0712345678"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300"
+                              style={{ paddingLeft: '3.5rem' }}
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 focus:border-cyan-500 focus:ring-cyan-500/20 transition-all duration-300"
                               data-testid="client-phone-input"
                             />
                           </div>
@@ -588,7 +591,7 @@ const ServiceDashboard = () => {
                     {/* Device Info Section */}
                     <div className="glass-effect rounded-2xl p-6 border border-white/10">
                       <h3 className="text-xl font-semibold text-blue-400 flex items-center mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-blue-500/25">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-blue-500/25 p-2">
                           <Smartphone className="w-5 h-5 text-white" />
                         </div>
                         Informații Dispozitiv
@@ -597,13 +600,13 @@ const ServiceDashboard = () => {
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium">Model</Label>
                           <div className="relative">
-                            <Cpu className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Cpu className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                             <Input
                               value={formData.device_model}
                               onChange={(e) => setFormData({ ...formData, device_model: e.target.value })}
                               required
                               placeholder="Samsung S20"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                               data-testid="device-model-input"
                             />
                           </div>
@@ -612,12 +615,12 @@ const ServiceDashboard = () => {
                           <Label className="text-slate-300 font-medium">IMEI / SN</Label>
                           <div className="flex items-center space-x-2">
                             <div className="relative flex-1">
-                              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                               <Input
                                 value={formData.imei}
                                 onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
                                 placeholder="IMEI"
-                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                                 data-testid="imei-input"
                               />
                             </div>
@@ -629,12 +632,12 @@ const ServiceDashboard = () => {
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium">Aspect vizual</Label>
                           <div className="relative">
-                            <Eye className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Eye className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                             <Input
                               value={formData.visual_aspect}
                               onChange={(e) => setFormData({ ...formData, visual_aspect: e.target.value })}
                               placeholder="Stare dispozitiv"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                               data-testid="visual-aspect-input"
                             />
                           </div>
@@ -645,7 +648,7 @@ const ServiceDashboard = () => {
                     {/* Service Details */}
                     <div className="glass-effect rounded-2xl p-6 border border-white/10">
                       <h3 className="text-xl font-semibold text-emerald-400 flex items-center mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-emerald-500/25">
+                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-emerald-500/25 p-2">
                           <Wrench className="w-5 h-5 text-white" />
                         </div>
                         Detalii Service
@@ -653,7 +656,7 @@ const ServiceDashboard = () => {
                       <div className="grid grid-cols-2 gap-6 mb-6">
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium flex items-center">
-                            <AlertTriangle className="w-4 h-4 mr-2 text-emerald-400" />
+                            <AlertTriangle className="w-4 h-4 mr-2 text-emerald-400 flex-shrink-0" />
                             Defecte reclamate
                           </Label>
                           <Textarea
@@ -668,7 +671,7 @@ const ServiceDashboard = () => {
                         </div>
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium flex items-center">
-                            <Wrench className="w-4 h-4 mr-2 text-emerald-400" />
+                            <Wrench className="w-4 h-4 mr-2 text-emerald-400 flex-shrink-0" />
                             Operațiuni service
                           </Label>
                           <Textarea
@@ -686,12 +689,12 @@ const ServiceDashboard = () => {
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium">Cod Acces</Label>
                           <div className="relative">
-                            <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                             <Input
                               value={formData.access_code}
                               onChange={(e) => setFormData({ ...formData, access_code: e.target.value })}
                               placeholder="PIN/Parolă"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                               data-testid="access-code-input"
                             />
                           </div>
@@ -699,12 +702,12 @@ const ServiceDashboard = () => {
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium">Culoare</Label>
                           <div className="relative">
-                            <Palette className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Palette className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                             <Input
                               value={formData.colors}
                               onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
                               placeholder="Culoare dispozitiv"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                               data-testid="colors-input"
                             />
                           </div>
@@ -712,12 +715,12 @@ const ServiceDashboard = () => {
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium">Cauza de defectare</Label>
                           <div className="relative">
-                            <Zap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Zap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                             <Input
                               value={formData.defect_cause}
                               onChange={(e) => setFormData({ ...formData, defect_cause: e.target.value })}
                               placeholder="Ex: cădere"
-                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
+                              className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all duration-300"
                               data-testid="defect-cause-input"
                             />
                           </div>
@@ -728,7 +731,7 @@ const ServiceDashboard = () => {
                     {/* Additional Info */}
                     <div className="glass-effect rounded-2xl p-6 border border-white/10">
                       <h3 className="text-xl font-semibold text-purple-400 flex items-center mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-purple-500/25">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-violet-500 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-purple-500/25 p-2">
                           <FileText className="w-5 h-5 text-white" />
                         </div>
                         Informații Suplimentare
@@ -736,7 +739,7 @@ const ServiceDashboard = () => {
                       <div className="space-y-6">
                         <div className="space-y-2">
                           <Label className="text-slate-300 font-medium flex items-center">
-                            <FileText className="w-4 h-4 mr-2 text-purple-400" />
+                            <FileText className="w-4 h-4 mr-2 text-purple-400 flex-shrink-0" />
                             Observații
                           </Label>
                           <Textarea
@@ -753,13 +756,13 @@ const ServiceDashboard = () => {
                           <div className="space-y-2">
                             <Label className="text-slate-300 font-medium">Cost estimat</Label>
                             <div className="relative">
-                              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                               <Input
                                 type="number"
                                 value={formData.estimated_cost}
                                 onChange={(e) => setFormData({ ...formData, estimated_cost: Number(e.target.value) })}
                                 placeholder="0"
-                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300"
+                                className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300"
                                 data-testid="estimated-cost-input"
                               />
                     </div>
@@ -769,7 +772,7 @@ const ServiceDashboard = () => {
                             <div className="relative">
                               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                               <Select value={formData.location_id} onValueChange={(value) => setFormData({ ...formData, location_id: value })}>
-                                <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-10 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300" data-testid="location-select">
+                                <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white rounded-xl h-12 pl-12 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300" data-testid="location-select">
                                   <SelectValue placeholder="Selectează locația" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-800 border-slate-700 rounded-xl">
@@ -795,7 +798,7 @@ const ServiceDashboard = () => {
                               data-testid="urgent-checkbox"
                             />
                             <Label htmlFor="urgent" className="text-slate-300 font-medium flex items-center">
-                              <AlertTriangle className="w-4 h-4 mr-2 text-amber-400" />
+                              <AlertTriangle className="w-4 h-4 mr-2 text-amber-400 flex-shrink-0" />
                               Urgent
                             </Label>
                           </div>
