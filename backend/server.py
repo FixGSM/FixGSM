@@ -4462,9 +4462,6 @@ cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(','
 # Clean up any whitespace
 cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
 
-# Log CORS configuration for debugging
-logger.info(f"CORS Origins configured: {cors_origins}")
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -4479,6 +4476,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Log CORS configuration for debugging
+logger.info(f"CORS Origins configured: {cors_origins}")
 
 @app.get("/health")
 async def health_check():
