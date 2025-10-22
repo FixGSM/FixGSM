@@ -124,14 +124,11 @@ const MessageGenerator = ({ isOpen, onClose, ticketData = {} }) => {
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="glass-effect border border-white/10 text-white max-w-4xl h-[90vh] flex flex-col rounded-3xl p-0">
-        <DialogHeader className="p-6 pb-4 border-b border-slate-700 flex flex-row items-center justify-between">
+        <DialogHeader className="p-6 pb-4 border-b border-slate-700">
           <DialogTitle className="text-2xl font-bold gradient-text font-['Space_Grotesk'] flex items-center">
             <Sparkles className="w-6 h-6 mr-2 text-purple-400" />
             Generator Mesaje Client
           </DialogTitle>
-          <Button variant="ghost" size="icon" onClick={handleClose} className="text-slate-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </Button>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">

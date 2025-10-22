@@ -237,9 +237,15 @@ const ServiceDashboard = () => {
     toast.success(`Câmpul ${mappedField} a fost completat!`);
   };
 
-  const handleOpenMessageGenerator = (ticket) => {
-    setSelectedTicketForMessage(ticket);
-    setMessageGeneratorOpen(true);
+  const handleOpenMessageGenerator = (ticketId) => {
+    // Find the complete ticket object from the tickets list
+    const ticket = tickets.find(t => t.ticket_id === ticketId);
+    if (ticket) {
+      setSelectedTicketForMessage(ticket);
+      setMessageGeneratorOpen(true);
+    } else {
+      toast.error('Fișa nu a fost găsită');
+    }
   };
 
   const getStatusColor = (status) => {
