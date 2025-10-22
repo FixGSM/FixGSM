@@ -1836,10 +1836,18 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
         import google.generativeai as genai
         import os
         
-        # Configurează Google Gemini cu API key din .env
-        api_key = os.environ.get('GOOGLE_GEMINI_API_KEY')
+        # Get API key from database (admin config) or environment variable as fallback
+        ai_global_config = await db["platform_settings"].find_one({"settings_id": "ai_config"})
+        api_key = None
+        
+        if ai_global_config and ai_global_config.get("api_key"):
+            api_key = ai_global_config.get("api_key")
+        else:
+            # Fallback to environment variable
+            api_key = os.environ.get('GOOGLE_GEMINI_API_KEY')
+        
         if not api_key:
-            raise HTTPException(status_code=500, detail="Google Gemini API key not configured")
+            raise HTTPException(status_code=500, detail="Google Gemini API key not configured. Please configure it in Admin Panel → AI Config")
         
         genai.configure(api_key=api_key)
         
@@ -3576,11 +3584,22 @@ async def get_admin_ai_config(current_user: dict = Depends(get_current_user)):
     if current_user.get("user_type") != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
     
-    return {
-        "api_key": os.getenv("GOOGLE_GEMINI_API_KEY", ""),
-        "model": "gemini-2.5-flash",
-        "enabled": True
-    }
+    # Get AI config from database or use environment variable as fallback
+    ai_config = await db["platform_settings"].find_one({"settings_id": "ai_config"})
+    
+    if ai_config:
+        return {
+            "api_key": ai_config.get("api_key", ""),
+            "model": ai_config.get("model", "gemini-2.5-flash"),
+            "enabled": ai_config.get("enabled", True)
+        }
+    else:
+        # Fallback to environment variable
+        return {
+            "api_key": os.getenv("GOOGLE_GEMINI_API_KEY", ""),
+            "model": "gemini-2.5-flash",
+            "enabled": True
+        }
 
 @api_router.put("/admin/ai-config")
 async def update_admin_ai_config(
@@ -3591,11 +3610,23 @@ async def update_admin_ai_config(
     if current_user.get("user_type") != "admin":
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Update .env file or environment variables
-    # For now, just return success
-    # In production, you would update the .env file
+    # Save AI configuration to database
+    ai_config_doc = {
+        "settings_id": "ai_config",
+        "api_key": data.get("api_key", ""),
+        "model": data.get("model", "gemini-2.5-flash"),
+        "enabled": data.get("enabled", True),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
     
-    return {"message": "AI configuration updated successfully"}
+    # Upsert AI configuration
+    await db["platform_settings"].update_one(
+        {"settings_id": "ai_config"},
+        {"$set": ai_config_doc, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {"message": "AI configuration updated successfully", "config": ai_config_doc}
 
 @api_router.get("/admin/subscription-plans")
 async def get_subscription_plans(current_user: dict = Depends(get_current_user)):
