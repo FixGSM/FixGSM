@@ -30,6 +30,13 @@ const AdminDashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [serverInfo, setServerInfo] = useState(null);
   const [aiConfig, setAiConfig] = useState({ api_key: '', model: 'gemini-2.5-flash', enabled: true });
+  const [aiStats, setAiStats] = useState({
+    last_24h: { total_calls: 0, total_cost: 0 },
+    all_time: { total_calls: 0, total_cost: 0 },
+    tenant_usage: [],
+    hourly_usage: []
+  });
+  const [aiStatsLoading, setAiStatsLoading] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,8 +128,20 @@ const AdminDashboard = () => {
       }
       
       if (activeTab === 'ai') {
-        const aiRes = await axios.get(`${API}/admin/ai-config`, config);
-        setAiConfig(aiRes.data);
+        setAiStatsLoading(true);
+        try {
+          const [aiRes, aiStatsRes] = await Promise.all([
+            axios.get(`${API}/admin/ai-config`, config),
+            axios.get(`${API}/admin/ai-statistics`, config)
+          ]);
+          setAiConfig(aiRes.data);
+          setAiStats(aiStatsRes.data);
+        } catch (error) {
+          console.error('Error fetching AI data:', error);
+          toast.error('Eroare la încărcarea statisticilor AI');
+        } finally {
+          setAiStatsLoading(false);
+        }
       }
       
       if (activeTab === 'subscriptions') {
@@ -1570,16 +1589,64 @@ const AdminDashboard = () => {
 
                   <div className="bg-slate-800/50 rounded-xl p-4 space-y-2">
                     <h4 className="text-white font-medium">Statistici Utilizare AI</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    {aiStatsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                        <span className="ml-2 text-slate-400">Se încarcă statisticile...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-slate-400 text-sm">Total API Calls (24h)</p>
+                            <p className="text-white text-2xl font-bold">
+                              {aiStats?.last_24h?.total_calls?.toLocaleString() || 0}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400 text-sm">Cost estimat (24h)</p>
+                            <p className="text-white text-2xl font-bold">
+                              ${aiStats?.last_24h?.total_cost?.toFixed(4) || '0.0000'}
+                            </p>
+                          </div>
+                        </div>
+                    <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-700">
                       <div>
-                        <p className="text-slate-400 text-sm">Total API Calls (24h)</p>
-                        <p className="text-white text-2xl font-bold">1,234</p>
+                        <p className="text-slate-400 text-sm">Total API Calls (All Time)</p>
+                        <p className="text-white text-xl font-bold">
+                          {aiStats?.all_time?.total_calls?.toLocaleString() || 0}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-slate-400 text-sm">Cost estimat</p>
-                        <p className="text-white text-2xl font-bold">$12.34</p>
+                        <p className="text-slate-400 text-sm">Cost Total (All Time)</p>
+                        <p className="text-white text-xl font-bold">
+                          ${aiStats?.all_time?.total_cost?.toFixed(4) || '0.0000'}
+                        </p>
                       </div>
                     </div>
+                    
+                    {/* Tenant Usage Breakdown */}
+                    {aiStats?.tenant_usage && aiStats.tenant_usage.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-slate-700">
+                        <h5 className="text-white font-medium mb-3">Utilizare pe Tenant (24h)</h5>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {aiStats.tenant_usage.map((tenant, index) => (
+                            <div key={index} className="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
+                              <div>
+                                <p className="text-white text-sm font-medium">{tenant.tenant_name || `Tenant ${tenant.tenant_id}`}</p>
+                                <p className="text-slate-400 text-xs">{tenant.total_calls} calls</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-green-400 text-sm font-medium">${tenant.total_cost?.toFixed(4) || '0.0000'}</p>
+                                <p className="text-slate-400 text-xs">{tenant.total_tokens?.toLocaleString() || 0} tokens</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                      </>
+                    )}
                   </div>
 
                   <Button 

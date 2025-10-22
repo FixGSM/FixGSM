@@ -1854,6 +1854,10 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
         # Inițializează modelul Gemini
         model = genai.GenerativeModel('gemini-2.5-flash')
         
+        # Track AI usage for statistics
+        usage_id = str(uuid.uuid4())
+        usage_start_time = datetime.now(timezone.utc)
+        
         # Build system prompt based on tenant configuration
         tone_instructions = {
             "professional": "Comunică profesional, exact și orientat spre soluții.",
@@ -2037,6 +2041,40 @@ async def ai_chat(request: ChatRequest, current_user: dict = Depends(get_current
             {"conversation_id": conversation_id, "type": "ai", "content": response_text, "timestamp": datetime.now(timezone.utc).isoformat()},
         ])
         await db.ai_conversations.update_one({"conversation_id": conversation_id}, {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}})
+        
+        # Track AI usage statistics
+        usage_end_time = datetime.now(timezone.utc)
+        usage_duration = (usage_end_time - usage_start_time).total_seconds()
+        
+        # Estimate tokens and cost (rough estimation)
+        input_tokens = len(request.message.split()) * 1.3  # Rough estimation
+        output_tokens = len(response_text.split()) * 1.3
+        total_tokens = input_tokens + output_tokens
+        
+        # Gemini pricing (as of 2024): $0.000075 per 1K input tokens, $0.0003 per 1K output tokens
+        input_cost = (input_tokens / 1000) * 0.000075
+        output_cost = (output_tokens / 1000) * 0.0003
+        total_cost = input_cost + output_cost
+        
+        # Save usage statistics
+        usage_record = {
+            "usage_id": usage_id,
+            "tenant_id": current_user.get("tenant_id"),
+            "user_id": current_user["user_id"],
+            "conversation_id": conversation_id,
+            "input_tokens": int(input_tokens),
+            "output_tokens": int(output_tokens),
+            "total_tokens": int(total_tokens),
+            "input_cost": round(input_cost, 6),
+            "output_cost": round(output_cost, 6),
+            "total_cost": round(total_cost, 6),
+            "duration_seconds": round(usage_duration, 2),
+            "model": "gemini-2.5-flash",
+            "timestamp": usage_start_time.isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db["ai_usage_stats"].insert_one(usage_record)
         
         return ChatResponse(
             response=response_text,
@@ -3627,6 +3665,95 @@ async def update_admin_ai_config(
     )
     
     return {"message": "AI configuration updated successfully", "config": ai_config_doc}
+
+@api_router.get("/admin/ai-statistics")
+async def get_ai_statistics(current_user: dict = Depends(get_current_user)):
+    """Get AI usage statistics (admin only)"""
+    if current_user.get("user_type") != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get statistics for last 24 hours
+    yesterday = datetime.now(timezone.utc) - timedelta(hours=24)
+    
+    # Total API calls in last 24h
+    total_calls_24h = await db["ai_usage_stats"].count_documents({
+        "timestamp": {"$gte": yesterday.isoformat()}
+    })
+    
+    # Total cost in last 24h
+    cost_pipeline = [
+        {"$match": {"timestamp": {"$gte": yesterday.isoformat()}}},
+        {"$group": {"_id": None, "total_cost": {"$sum": "$total_cost"}}}
+    ]
+    cost_result = await db["ai_usage_stats"].aggregate(cost_pipeline).to_list(1)
+    total_cost_24h = cost_result[0]["total_cost"] if cost_result else 0
+    
+    # Total API calls all time
+    total_calls_all = await db["ai_usage_stats"].count_documents({})
+    
+    # Total cost all time
+    cost_all_pipeline = [
+        {"$group": {"_id": None, "total_cost": {"$sum": "$total_cost"}}}
+    ]
+    cost_all_result = await db["ai_usage_stats"].aggregate(cost_all_pipeline).to_list(1)
+    total_cost_all = cost_all_result[0]["total_cost"] if cost_all_result else 0
+    
+    # Usage by tenant (last 24h)
+    tenant_usage_pipeline = [
+        {"$match": {"timestamp": {"$gte": yesterday.isoformat()}}},
+        {"$group": {
+            "_id": "$tenant_id",
+            "calls": {"$sum": 1},
+            "cost": {"$sum": "$total_cost"},
+            "tokens": {"$sum": "$total_tokens"}
+        }},
+        {"$lookup": {
+            "from": "tenants",
+            "localField": "_id",
+            "foreignField": "tenant_id",
+            "as": "tenant_info"
+        }},
+        {"$unwind": {"path": "$tenant_info", "preserveNullAndEmptyArrays": True}},
+        {"$project": {
+            "tenant_id": "$_id",
+            "tenant_name": "$tenant_info.company_name",
+            "calls": 1,
+            "cost": 1,
+            "tokens": 1
+        }},
+        {"$sort": {"cost": -1}},
+        {"$limit": 10}
+    ]
+    tenant_usage = await db["ai_usage_stats"].aggregate(tenant_usage_pipeline).to_list(10)
+    
+    # Hourly usage for last 24h (for charts)
+    hourly_usage_pipeline = [
+        {"$match": {"timestamp": {"$gte": yesterday.isoformat()}}},
+        {"$group": {
+            "_id": {
+                "hour": {"$hour": {"$dateFromString": {"dateString": "$timestamp"}}},
+                "day": {"$dayOfMonth": {"$dateFromString": {"dateString": "$timestamp"}}}
+            },
+            "calls": {"$sum": 1},
+            "cost": {"$sum": "$total_cost"}
+        }},
+        {"$sort": {"_id.day": 1, "_id.hour": 1}}
+    ]
+    hourly_usage = await db["ai_usage_stats"].aggregate(hourly_usage_pipeline).to_list(24)
+    
+    return {
+        "last_24h": {
+            "total_calls": total_calls_24h,
+            "total_cost": round(total_cost_24h, 4),
+            "average_cost_per_call": round(total_cost_24h / max(total_calls_24h, 1), 6)
+        },
+        "all_time": {
+            "total_calls": total_calls_all,
+            "total_cost": round(total_cost_all, 4)
+        },
+        "tenant_usage": tenant_usage,
+        "hourly_usage": hourly_usage
+    }
 
 @api_router.get("/admin/subscription-plans")
 async def get_subscription_plans(current_user: dict = Depends(get_current_user)):
