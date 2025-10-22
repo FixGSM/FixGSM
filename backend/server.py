@@ -4431,6 +4431,263 @@ def clean_message_response(response_text: str) -> str:
     
     return cleaned
 
+@api_router.post("/ai/analyze-statistics")
+async def analyze_statistics_with_nl(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Analyze statistics using natural language queries"""
+    if current_user["user_type"] not in ["admin", "tenant_owner", "employee"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        query = request.get("query", "")
+        tenant_id = current_user.get("tenant_id")
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        # Get AI configuration
+        ai_global_config = await db["platform_settings"].find_one({"settings_id": "ai_config"})
+        if not ai_global_config:
+            raise HTTPException(status_code=500, detail="AI configuration not found")
+        
+        provider = ai_global_config.get("provider", "google_gemini")
+        api_key = ai_global_config.get("api_key")
+        model_name = ai_global_config.get("model", "gemini-2.5-flash")
+        
+        if not api_key:
+            raise HTTPException(status_code=500, detail=f"{provider.title()} API key not configured")
+        
+        # Get relevant data for analysis
+        analysis_data = await get_analysis_data(tenant_id)
+        
+        # Build analysis prompt
+        analysis_prompt = build_analysis_prompt(query, analysis_data)
+        
+        # Generate analysis using AI
+        if provider == "google_gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name)
+            
+            response = model.generate_content(analysis_prompt)
+            response_text = response.text
+            
+        elif provider in ["openai", "azure_openai", "custom_llm"]:
+            import openai
+            
+            if provider == "azure_openai":
+                base_url = ai_global_config.get("openai_base_url", "")
+                organization = ai_global_config.get("openai_organization", "")
+                client = openai.OpenAI(api_key=api_key, base_url=base_url, organization=organization)
+            elif provider == "custom_llm":
+                custom_endpoint = ai_global_config.get("custom_endpoint_url", "")
+                client = openai.OpenAI(api_key=api_key, base_url=custom_endpoint)
+            else:
+                client = openai.OpenAI(api_key=api_key)
+            
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "Ești specialist în analiza datelor pentru service GSM. Analizezi statistici și oferi insights valoroase."},
+                    {"role": "user", "content": analysis_prompt}
+                ],
+                max_tokens=2000,
+                temperature=0.3
+            )
+            response_text = response.choices[0].message.content
+            
+        elif provider == "anthropic":
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            
+            response = client.messages.create(
+                model=model_name,
+                max_tokens=2000,
+                temperature=0.3,
+                messages=[
+                    {"role": "user", "content": analysis_prompt}
+                ]
+            )
+            response_text = response.content[0].text
+        
+        else:
+            raise HTTPException(status_code=500, detail=f"Unsupported AI provider: {provider}")
+        
+        # Parse and structure response
+        analysis_result = parse_analysis_response(response_text, query)
+        
+        return {
+            "success": True,
+            "query": query,
+            "analysis": analysis_result,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Error analyzing statistics: {e}")
+        raise HTTPException(status_code=500, detail=f"Error analyzing statistics: {str(e)}")
+
+async def get_analysis_data(tenant_id):
+    """Get relevant data for statistical analysis"""
+    try:
+        # Get tickets data
+        tickets = await db["tickets"].find({"tenant_id": tenant_id}).to_list(length=None)
+        
+        # Get clients data
+        clients = await db["clients"].find({"tenant_id": tenant_id}).to_list(length=None)
+        
+        # Get AI usage data
+        ai_usage = await db["ai_usage"].find({"tenant_id": tenant_id}).to_list(length=None)
+        
+        # Calculate basic statistics
+        total_tickets = len(tickets)
+        total_clients = len(clients)
+        
+        # Status breakdown
+        status_counts = {}
+        for ticket in tickets:
+            status = ticket.get("status", "Unknown")
+            status_counts[status] = status_counts.get(status, 0) + 1
+        
+        # Device model analysis
+        device_models = {}
+        for ticket in tickets:
+            model = ticket.get("device_model", "Unknown")
+            device_models[model] = device_models.get(model, 0) + 1
+        
+        # Cost analysis
+        total_revenue = sum(ticket.get("estimated_cost", 0) for ticket in tickets)
+        avg_cost = total_revenue / total_tickets if total_tickets > 0 else 0
+        
+        # Time analysis
+        recent_tickets = [t for t in tickets if t.get("created_at")]
+        if recent_tickets:
+            recent_tickets.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            latest_ticket = recent_tickets[0].get("created_at", "")
+        else:
+            latest_ticket = "N/A"
+        
+        # AI usage analysis
+        total_ai_calls = len(ai_usage)
+        ai_costs = sum(usage.get("total_cost", 0) for usage in ai_usage)
+        
+        return {
+            "total_tickets": total_tickets,
+            "total_clients": total_clients,
+            "total_revenue": total_revenue,
+            "avg_cost": avg_cost,
+            "status_counts": status_counts,
+            "device_models": device_models,
+            "latest_ticket": latest_ticket,
+            "total_ai_calls": total_ai_calls,
+            "ai_costs": ai_costs,
+            "recent_tickets": recent_tickets[:10]  # Last 10 tickets
+        }
+        
+    except Exception as e:
+        print(f"Error getting analysis data: {e}")
+        return {}
+
+def build_analysis_prompt(query: str, data: dict) -> str:
+    """Build analysis prompt based on query and data"""
+    
+    base_prompt = """Ești specialist în analiza datelor pentru service GSM.
+Analizezi statistici și oferi insights valoroase pentru business.
+
+PRINCIPII:
+- Răspunzi ÎNTOTDEAUNA în română
+- Fii precis și concis
+- Oferă insights acționabile
+- Folosești date concrete din statistici
+- Sugerezi îmbunătățiri bazate pe date"""
+    
+    # Format data for AI
+    data_summary = f"""
+DATE DISPONIBILE:
+- Total fișe: {data.get('total_tickets', 0)}
+- Total clienți: {data.get('total_clients', 0)}
+- Venit total: {data.get('total_revenue', 0):.2f} RON
+- Cost mediu: {data.get('avg_cost', 0):.2f} RON
+- Apeluri AI: {data.get('total_ai_calls', 0)}
+- Cost AI: {data.get('ai_costs', 0):.4f} RON
+
+DISTRIBUȚIE STATUS:
+{format_dict(data.get('status_counts', {}))}
+
+MODELE DISPOZITIVE:
+{format_dict(data.get('device_models', {}))}
+
+ULTIMELE FIȘE:
+{format_recent_tickets(data.get('recent_tickets', []))}
+"""
+    
+    return f"""{base_prompt}
+
+QUERY UTILIZATOR: {query}
+
+{data_summary}
+
+SARCINA: Analizează datele și răspunde la query-ul utilizatorului cu:
+1. Răspuns direct la întrebare
+2. Statistici relevante
+3. Insights și observații
+4. Recomandări pentru îmbunătățire (dacă aplicabil)
+
+RĂSPUNS STRUCTURAT:
+- Analiză detaliată
+- Statistici concrete
+- Insights business
+- Recomandări acționabile"""
+
+def format_dict(d: dict) -> str:
+    """Format dictionary for display"""
+    if not d:
+        return "N/A"
+    return "\n".join([f"- {k}: {v}" for k, v in d.items()])
+
+def format_recent_tickets(tickets: list) -> str:
+    """Format recent tickets for display"""
+    if not tickets:
+        return "N/A"
+    
+    formatted = []
+    for ticket in tickets[:5]:  # Show only first 5
+        formatted.append(f"- {ticket.get('ticket_id', 'N/A')}: {ticket.get('device_model', 'N/A')} - {ticket.get('status', 'N/A')}")
+    
+    return "\n".join(formatted)
+
+def parse_analysis_response(response_text: str, query: str) -> dict:
+    """Parse AI analysis response"""
+    import re
+    
+    # Extract key insights using patterns
+    insights = []
+    
+    # Look for bullet points or numbered lists
+    bullet_pattern = r'[-•]\s*([^\n]+)'
+    bullets = re.findall(bullet_pattern, response_text)
+    if bullets:
+        insights.extend(bullets)
+    
+    # Look for statistics
+    stats_pattern = r'(\d+(?:\.\d+)?)\s*(?:RON|fișe|clienți|%)'
+    stats = re.findall(stats_pattern, response_text)
+    
+    # Look for recommendations
+    rec_pattern = r'(?:recomand|sugest|îmbunătăț|optimiz)(?:ie|ii|are)?[:\s]*([^\n]+)'
+    recommendations = re.findall(rec_pattern, response_text, re.IGNORECASE)
+    
+    return {
+        "query": query,
+        "response": response_text,
+        "insights": insights,
+        "statistics": stats,
+        "recommendations": recommendations,
+        "formatted": True
+    }
+
 @api_router.get("/admin/ai-statistics")
 async def get_ai_statistics(current_user: dict = Depends(get_current_user)):
     """Get AI usage statistics (admin only)"""

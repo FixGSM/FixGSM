@@ -18,6 +18,7 @@ import {
   Cpu, Wifi, Mail, Globe, Package, FileText, Search
 } from 'lucide-react';
 import { toast } from 'sonner';
+import StatisticsAnalyzer from '@/components/StatisticsAnalyzer';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -29,10 +30,10 @@ const AdminDashboard = () => {
   const [tenants, setTenants] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [serverInfo, setServerInfo] = useState(null);
-  const [aiConfig, setAiConfig] = useState({ 
-    provider: 'google_gemini', 
-    api_key: '', 
-    model: 'gemini-2.5-flash', 
+  const [aiConfig, setAiConfig] = useState({
+    provider: 'google_gemini',
+    api_key: '',
+    model: 'gemini-2.5-flash',
     enabled: true,
     openai_base_url: '',
     openai_organization: '',
@@ -40,6 +41,7 @@ const AdminDashboard = () => {
     custom_input_cost: 0,
     custom_output_cost: 0
   });
+  const [statisticsAnalyzerOpen, setStatisticsAnalyzerOpen] = useState(false);
   const [aiStats, setAiStats] = useState({
     last_24h: { total_calls: 0, total_cost: 0 },
     all_time: { total_calls: 0, total_cost: 0 },
@@ -1802,6 +1804,15 @@ const AdminDashboard = () => {
                     <Key className="w-4 h-4 mr-2" />
                     Salvează Configurare AI
                   </Button>
+
+                  <Button 
+                    variant="outline"
+                    className="w-full border-purple-500/30 text-purple-300 hover:bg-purple-500/20"
+                    onClick={() => setStatisticsAnalyzerOpen(true)}
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Analiză Statistici AI
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -2541,6 +2552,14 @@ const AdminDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Statistics Analyzer */}
+      {statisticsAnalyzerOpen && (
+        <StatisticsAnalyzer
+          isOpen={statisticsAnalyzerOpen}
+          onClose={() => setStatisticsAnalyzerOpen(false)}
+        />
+      )}
     </div>
   );
 };
