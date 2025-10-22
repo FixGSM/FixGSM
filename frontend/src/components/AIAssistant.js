@@ -55,12 +55,15 @@ const AIAssistant = ({
       case 'ticket_create':
         return `🤖 Bună! Sunt asistentul AI pentru crearea fișelor de reparație.
 
-Pentru a te ajuta să completezi fișa rapid și precis, descrie-mi:
-• Ce dispozitiv este (model, brand)
-• Ce problemă raportează clientul
-• Simptomele observate
+**Workflow optimizat:**
+1. Completează manual: Nume client + Telefon
+2. Descrie-mi problema: "iPhone 12 Pro Max, ecran spart, culoare negru"
+3. Eu completez automat: Model, culoare, aspect vizual, operațiuni, cost, etc.
 
-Voi genera automat toate câmpurile necesare!`;
+**Exemplu de descriere:**
+"iPhone 12 Pro Max, ecran spart, culoare negru, nu se încarcă"
+
+Voi extrage automat toate detaliile și voi completa toate câmpurile!`;
 
       case 'ticket_diagnose':
         return `🔧 Asistent diagnostic activat!
@@ -124,15 +127,19 @@ Ce piese ai nevoie?`;
         console.log('DEBUG: Received structured data:', response.data.structured_data);
         setSuggestedFields(response.data.structured_data);
         
-        // Auto-fill form fields
+        // Count filled fields
+        let filledFields = 0;
         Object.entries(response.data.structured_data).forEach(([field, value]) => {
           if (value && value !== '') {
             console.log(`DEBUG: Auto-filling ${field} with:`, value);
             onAutoFill(field, value);
+            filledFields++;
           }
         });
         
-        toast.success('Câmpurile au fost completate automat!');
+        if (filledFields > 0) {
+          toast.success(`✅ ${filledFields} câmpuri completate automat!`);
+        }
       }
 
     } catch (error) {
@@ -184,8 +191,13 @@ Ce piese ai nevoie?`;
   };
 
   const formatMessage = (content) => {
+    // Hide JSON blocks from display but keep them for parsing
+    const hideJsonBlocks = (text) => {
+      return text.replace(/```json[\s\S]*?```/g, '');
+    };
+    
     // Simple markdown-like formatting
-    return content
+    return hideJsonBlocks(content)
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code class="bg-slate-700 px-1 rounded">$1</code>')

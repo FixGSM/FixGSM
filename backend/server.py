@@ -3911,20 +3911,31 @@ SARCINA TA: Ajută la crearea fișei de reparație prin:
 CONTEXT ACTUAL:
 - Dispozitiv: {context_data.get('device_model', 'N/A')}
 - Client: {context_data.get('client_name', 'N/A')}
+- Telefon: {context_data.get('client_phone', 'N/A')}
 - Problema inițială: {context_data.get('reported_issue', 'N/A')}
 
-RĂSPUNS STRUCTURAT (JSON):
+IMPORTANT: 
+- Răspunde în română, natural, fără JSON în chat
+- Doar la sfârșitul răspunsului, adaugă JSON structurat pentru completare automată
+- Extrage automat modelul, culoarea, și alte detalii din descrierea problemei
+
+RĂSPUNS FORMAT:
+1. Întrebări pentru clarificare (dacă necesare)
+2. Diagnostic detaliat și profesional
+3. La sfârșitul răspunsului, adaugă JSON pentru completare automată:
+
+```json
 {{
-  "questions": ["întrebare1", "întrebare2"],
-  "diagnostic": {{
-    "reported_issue": "descriere clară problema",
-    "service_operations": "pași de urmat",
-    "estimated_cost": 850,
-    "defect_cause": "cauza probabilă",
-    "observations": "note importante",
-    "parts_needed": ["piesa1", "piesa2"]
-  }}
-}}"""
+  "device_model": "model completat automat",
+  "visual_aspect": "descriere aspect vizual",
+  "reported_issue": "problema detaliată",
+  "service_operations": "operațiuni de reparație",
+  "defect_cause": "cauza defectului",
+  "observations": "observații importante",
+  "estimated_cost": 850,
+  "colors": "culoare dispozitiv"
+}}
+```"""
 
     elif context_type == "ticket_diagnose":
         return f"""{base_prompt}
@@ -3961,29 +3972,42 @@ def parse_structured_response(response_text: str, context_type: str) -> dict:
         print(f"DEBUG: Parsing response for context_type: {context_type}")
         print(f"DEBUG: Response text: {response_text[:500]}...")
         
-        # Try to extract JSON from response
+        # Try to extract JSON from response (look for ```json blocks first)
+        json_block_match = re.search(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+        if json_block_match:
+            json_str = json_block_match.group(1)
+            print(f"DEBUG: Found JSON block: {json_str[:200]}...")
+            structured_data = json.loads(json_str)
+            print(f"DEBUG: Parsed JSON: {structured_data}")
+            return structured_data
+        
+        # Fallback: try to extract any JSON object
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         if json_match:
             json_str = json_match.group()
             print(f"DEBUG: Found JSON: {json_str[:200]}...")
-            structured_data = json.loads(json_str)
-            
-            if context_type == "ticket_create" and "diagnostic" in structured_data:
-                diagnostic = structured_data["diagnostic"]
-                print(f"DEBUG: Extracted diagnostic: {diagnostic}")
+            try:
+                structured_data = json.loads(json_str)
                 
-                # Convert arrays to strings for form fields
-                result = {}
-                for key, value in diagnostic.items():
-                    if isinstance(value, list):
-                        result[key] = "; ".join(value) if value else ""
-                    else:
-                        result[key] = str(value) if value is not None else ""
+                if context_type == "ticket_create" and "diagnostic" in structured_data:
+                    diagnostic = structured_data["diagnostic"]
+                    print(f"DEBUG: Extracted diagnostic: {diagnostic}")
+                    
+                    # Convert arrays to strings for form fields
+                    result = {}
+                    for key, value in diagnostic.items():
+                        if isinstance(value, list):
+                            result[key] = "; ".join(value) if value else ""
+                        else:
+                            result[key] = str(value) if value is not None else ""
+                    
+                    print(f"DEBUG: Processed result: {result}")
+                    return result
                 
-                print(f"DEBUG: Processed result: {result}")
-                return result
-            
-            return structured_data
+                return structured_data
+            except json.JSONDecodeError as e:
+                print(f"DEBUG: JSON decode error: {e}")
+                pass
         
         # Fallback: extract key information using patterns
         structured_data = {}
