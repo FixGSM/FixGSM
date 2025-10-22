@@ -3789,6 +3789,400 @@ async def update_admin_ai_config(
     
     return {"message": "AI configuration updated successfully", "config": ai_config_doc}
 
+@api_router.post("/ai/chat-with-context")
+async def ai_chat_with_context(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """AI chat with ticket context for workflow assistance"""
+    if current_user["user_type"] not in ["admin", "tenant_owner", "employee"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    message = request.get("message", "")
+    context_type = request.get("context_type", "ticket_create")
+    context_data = request.get("context_data", {})
+    
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+    
+    # Get AI configuration
+    ai_global_config = await db["platform_settings"].find_one({"settings_id": "ai_config"})
+    if not ai_global_config:
+        raise HTTPException(status_code=500, detail="AI configuration not found")
+    
+    provider = ai_global_config.get("provider", "google_gemini")
+    api_key = ai_global_config.get("api_key")
+    model_name = ai_global_config.get("model", "gemini-2.5-flash")
+    
+    if not api_key:
+        raise HTTPException(status_code=500, detail=f"{provider.title()} API key not configured")
+    
+    try:
+        # Build context-specific system prompt
+        system_prompt = build_context_system_prompt(context_type, context_data)
+        
+        # Initialize AI provider
+        if provider == "google_gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name)
+            
+            full_prompt = f"{system_prompt}\n\nUser: {message}\nAI:"
+            response = model.generate_content(full_prompt)
+            response_text = response.text
+            
+        elif provider in ["openai", "azure_openai", "custom_llm"]:
+            import openai
+            
+            if provider == "azure_openai":
+                base_url = ai_global_config.get("openai_base_url", "")
+                organization = ai_global_config.get("openai_organization", "")
+                client = openai.OpenAI(api_key=api_key, base_url=base_url, organization=organization)
+            elif provider == "custom_llm":
+                custom_endpoint = ai_global_config.get("custom_endpoint_url", "")
+                client = openai.OpenAI(api_key=api_key, base_url=custom_endpoint)
+            else:
+                client = openai.OpenAI(api_key=api_key)
+            
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message}
+                ],
+                max_tokens=2000,
+                temperature=0.7
+            )
+            response_text = response.choices[0].message.content
+            
+        elif provider == "anthropic":
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            
+            response = client.messages.create(
+                model=model_name,
+                max_tokens=2000,
+                messages=[
+                    {"role": "user", "content": f"{system_prompt}\n\n{message}"}
+                ]
+            )
+            response_text = response.content[0].text
+        
+        # Parse structured data from response
+        structured_data = parse_structured_response(response_text, context_type)
+        
+        return {
+            "response": response_text,
+            "structured_data": structured_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Error with AI provider: {e}")
+        raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
+
+def build_context_system_prompt(context_type: str, context_data: dict) -> str:
+    """Build context-specific system prompt"""
+    
+    base_prompt = """Ești asistent AI specializat pentru service GSM în platforma FixGSM.
+
+PRINCIPII DE COMUNICARE:
+- Răspunzi ÎNTOTDEAUNA în română
+- Fii concis dar complet
+- Oferă soluții practice și aplicabile
+- Prioritizezi diagnosticul și soluțiile tehnice
+- Folosești terminologie GSM/telecomunicatii corectă
+
+FORMAT RĂSPUNS:
+- Structurat cu bullet points
+- Cauze probabile ordonate
+- Checklist de verificări
+- Soluții concrete cu timp/cost estimat
+- Note importante și precauții"""
+
+    if context_type == "ticket_create":
+        return f"""{base_prompt}
+
+SARCINA TA: Ajută la crearea fișei de reparație prin:
+1. Întrebări clare pentru a înțelege problema
+2. Diagnostic preliminar bazat pe simptome
+3. Completare automată a câmpurilor fișei
+
+CONTEXT ACTUAL:
+- Dispozitiv: {context_data.get('device_model', 'N/A')}
+- Client: {context_data.get('client_name', 'N/A')}
+- Problema inițială: {context_data.get('reported_issue', 'N/A')}
+
+RĂSPUNS STRUCTURAT (JSON):
+{{
+  "questions": ["întrebare1", "întrebare2"],
+  "diagnostic": {{
+    "reported_issue": "descriere clară problema",
+    "service_operations": "pași de urmat",
+    "estimated_cost": 850,
+    "defect_cause": "cauza probabilă",
+    "observations": "note importante",
+    "parts_needed": ["piesa1", "piesa2"]
+  }}
+}}"""
+
+    elif context_type == "ticket_diagnose":
+        return f"""{base_prompt}
+
+SARCINA TA: Asistență tehnică pentru diagnostic și reparație.
+
+CONTEXT FIȘĂ:
+- Dispozitiv: {context_data.get('device_model', 'N/A')}
+- Problema: {context_data.get('reported_issue', 'N/A')}
+- Status: {context_data.get('status', 'N/A')}
+- Operațiuni: {context_data.get('service_operations', 'N/A')}
+
+FOCUS: Diagnostic tehnic avansat, soluții practice, troubleshooting"""
+
+    elif context_type == "parts_order":
+        return f"""{base_prompt}
+
+SARCINA TA: Asistență pentru comenzi piese și gestionare stoc.
+
+CONTEXT:
+- Dispozitiv: {context_data.get('device_model', 'N/A')}
+- Reparație: {context_data.get('service_operations', 'N/A')}
+
+FOCUS: Sugestii piese, prețuri, furnizori, disponibilitate"""
+
+    return base_prompt
+
+def parse_structured_response(response_text: str, context_type: str) -> dict:
+    """Parse structured data from AI response"""
+    try:
+        import json
+        import re
+        
+        # Try to extract JSON from response
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            json_str = json_match.group()
+            structured_data = json.loads(json_str)
+            
+            if context_type == "ticket_create" and "diagnostic" in structured_data:
+                return structured_data["diagnostic"]
+            
+            return structured_data
+        
+        # Fallback: extract key information using patterns
+        structured_data = {}
+        
+        if "reported_issue" in response_text.lower():
+            # Extract reported issue
+            issue_match = re.search(r'(?:problema|issue)[:\s]*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
+            if issue_match:
+                structured_data["reported_issue"] = issue_match.group(1).strip()
+        
+        if "service_operations" in response_text.lower() or "operațiuni" in response_text.lower():
+            # Extract service operations
+            ops_match = re.search(r'(?:operațiuni|operations)[:\s]*(.+?)(?:\n|$)', response_text, re.IGNORECASE)
+            if ops_match:
+                structured_data["service_operations"] = ops_match.group(1).strip()
+        
+        if "cost" in response_text.lower() or "preț" in response_text.lower():
+            # Extract cost
+            cost_match = re.search(r'(\d+)\s*(?:RON|lei|€|\$)', response_text)
+            if cost_match:
+                structured_data["estimated_cost"] = int(cost_match.group(1))
+        
+        return structured_data
+        
+    except Exception as e:
+        print(f"Error parsing structured response: {e}")
+        return {}
+
+@api_router.post("/ai/generate-diagnostic")
+async def generate_diagnostic(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate diagnostic with structured output for ticket creation"""
+    if current_user["user_type"] not in ["admin", "tenant_owner", "employee"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    symptoms = request.get("symptoms", "")
+    device_model = request.get("device_model", "")
+    
+    if not symptoms or not device_model:
+        raise HTTPException(status_code=400, detail="Symptoms and device_model are required")
+    
+    # Get AI configuration
+    ai_global_config = await db["platform_settings"].find_one({"settings_id": "ai_config"})
+    if not ai_global_config:
+        raise HTTPException(status_code=500, detail="AI configuration not found")
+    
+    provider = ai_global_config.get("provider", "google_gemini")
+    api_key = ai_global_config.get("api_key")
+    model_name = ai_global_config.get("model", "gemini-2.5-flash")
+    
+    if not api_key:
+        raise HTTPException(status_code=500, detail=f"{provider.title()} API key not configured")
+    
+    try:
+        # Build diagnostic-specific prompt
+        diagnostic_prompt = f"""Ești expert tehnic GSM specializat în diagnostic și reparații.
+
+SARCINA: Generează diagnostic complet pentru:
+- Dispozitiv: {device_model}
+- Simptome: {symptoms}
+
+RĂSPUNS OBLIGATORIU (JSON format):
+{{
+  "reported_issue": "descriere clară și detaliată a problemei",
+  "service_operations": "lista pașilor de reparație necesari",
+  "estimated_cost": 850,
+  "defect_cause": "cauza principală a problemei",
+  "observations": "note importante pentru tehnician",
+  "parts_needed": ["piesa1", "piesa2", "piesa3"],
+  "time_estimate": "45 min",
+  "difficulty": "mediu",
+  "warranty_impact": "nu afectează garanția"
+}}
+
+GUIDELINES:
+- Fii precis și tehnic
+- Estimează costuri realiste (RON)
+- Lista piese specifice cu coduri dacă știi
+- Timp estimat realist
+- Nivel dificultate: ușor/mediu/greu
+- Impact garanție: da/nu/parțial"""
+
+        # Initialize AI provider
+        if provider == "google_gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name)
+            
+            response = model.generate_content(diagnostic_prompt)
+            response_text = response.text
+            
+        elif provider in ["openai", "azure_openai", "custom_llm"]:
+            import openai
+            
+            if provider == "azure_openai":
+                base_url = ai_global_config.get("openai_base_url", "")
+                organization = ai_global_config.get("openai_organization", "")
+                client = openai.OpenAI(api_key=api_key, base_url=base_url, organization=organization)
+            elif provider == "custom_llm":
+                custom_endpoint = ai_global_config.get("custom_endpoint_url", "")
+                client = openai.OpenAI(api_key=api_key, base_url=custom_endpoint)
+            else:
+                client = openai.OpenAI(api_key=api_key)
+            
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "Ești expert tehnic GSM. Răspunzi ÎNTOTDEAUNA în format JSON structurat."},
+                    {"role": "user", "content": diagnostic_prompt}
+                ],
+                max_tokens=2000,
+                temperature=0.3
+            )
+            response_text = response.choices[0].message.content
+            
+        elif provider == "anthropic":
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            
+            response = client.messages.create(
+                model=model_name,
+                max_tokens=2000,
+                messages=[
+                    {"role": "user", "content": diagnostic_prompt}
+                ]
+            )
+            response_text = response.content[0].text
+        
+        # Parse structured diagnostic data
+        diagnostic_data = parse_diagnostic_response(response_text)
+        
+        return {
+            "diagnostic": diagnostic_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        print(f"Error generating diagnostic: {e}")
+        raise HTTPException(status_code=500, detail=f"Diagnostic generation error: {str(e)}")
+
+def parse_diagnostic_response(response_text: str) -> dict:
+    """Parse diagnostic response into structured data"""
+    try:
+        import json
+        import re
+        
+        # Try to extract JSON from response
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            json_str = json_match.group()
+            return json.loads(json_str)
+        
+        # Fallback: extract information using patterns
+        diagnostic_data = {
+            "reported_issue": "",
+            "service_operations": "",
+            "estimated_cost": 0,
+            "defect_cause": "",
+            "observations": "",
+            "parts_needed": [],
+            "time_estimate": "",
+            "difficulty": "mediu",
+            "warranty_impact": "nu"
+        }
+        
+        # Extract reported issue
+        issue_match = re.search(r'"reported_issue":\s*"([^"]+)"', response_text)
+        if issue_match:
+            diagnostic_data["reported_issue"] = issue_match.group(1)
+        
+        # Extract service operations
+        ops_match = re.search(r'"service_operations":\s*"([^"]+)"', response_text)
+        if ops_match:
+            diagnostic_data["service_operations"] = ops_match.group(1)
+        
+        # Extract cost
+        cost_match = re.search(r'"estimated_cost":\s*(\d+)', response_text)
+        if cost_match:
+            diagnostic_data["estimated_cost"] = int(cost_match.group(1))
+        
+        # Extract defect cause
+        cause_match = re.search(r'"defect_cause":\s*"([^"]+)"', response_text)
+        if cause_match:
+            diagnostic_data["defect_cause"] = cause_match.group(1)
+        
+        # Extract observations
+        obs_match = re.search(r'"observations":\s*"([^"]+)"', response_text)
+        if obs_match:
+            diagnostic_data["observations"] = obs_match.group(1)
+        
+        # Extract parts needed
+        parts_match = re.search(r'"parts_needed":\s*\[([^\]]+)\]', response_text)
+        if parts_match:
+            parts_str = parts_match.group(1)
+            parts = [part.strip().strip('"') for part in parts_str.split(',')]
+            diagnostic_data["parts_needed"] = [part for part in parts if part]
+        
+        return diagnostic_data
+        
+    except Exception as e:
+        print(f"Error parsing diagnostic response: {e}")
+        return {
+            "reported_issue": "Diagnostic generat automat",
+            "service_operations": "Verificare și reparație conform simptomelor",
+            "estimated_cost": 0,
+            "defect_cause": "De investigat",
+            "observations": "Necesită verificare tehnică",
+            "parts_needed": [],
+            "time_estimate": "30 min",
+            "difficulty": "mediu",
+            "warranty_impact": "nu"
+        }
+
 @api_router.get("/admin/ai-statistics")
 async def get_ai_statistics(current_user: dict = Depends(get_current_user)):
     """Get AI usage statistics (admin only)"""

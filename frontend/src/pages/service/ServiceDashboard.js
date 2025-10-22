@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, DollarSign, TrendingUp, Clock, Plus, Search, Smartphone, User, Phone, Cpu, Shield, AlertTriangle, Wrench, Eye, Palette, Zap, MapPin, ChevronDown, Printer, Download } from 'lucide-react';
+import { FileText, DollarSign, TrendingUp, Clock, Plus, Search, Smartphone, User, Phone, Cpu, Shield, AlertTriangle, Wrench, Eye, Palette, Zap, MapPin, ChevronDown, Printer, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentAlert from '@/components/PaymentAlert';
 import AnnouncementBanner from '@/components/AnnouncementBanner';
+import AIAssistant from '@/components/AIAssistant';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -55,6 +56,7 @@ const ServiceDashboard = () => {
   const [openActionsDropdown, setOpenActionsDropdown] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, openUp: false });
   const [actionsDropdownPosition, setActionsDropdownPosition] = useState({ top: 0, left: 0 });
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const statusDropdownRef = useRef(null);
   const actionsDropdownRef = useRef(null);
 
@@ -202,6 +204,13 @@ const ServiceDashboard = () => {
       console.error('Error creating ticket:', error);
       toast.error('Eroare la crearea fișei');
     }
+  };
+
+  const handleAIAutoFill = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const getStatusColor = (status) => {
@@ -655,10 +664,22 @@ const ServiceDashboard = () => {
                       </h3>
                       <div className="grid grid-cols-2 gap-6 mb-6">
                         <div className="space-y-2">
-                          <Label className="text-slate-300 font-medium flex items-center">
-                            <AlertTriangle className="w-4 h-4 mr-2 text-emerald-400 flex-shrink-0" />
-                            Defecte reclamate
-                          </Label>
+                          <div className="flex items-center justify-between">
+                            <Label className="text-slate-300 font-medium flex items-center">
+                              <AlertTriangle className="w-4 h-4 mr-2 text-emerald-400 flex-shrink-0" />
+                              Defecte reclamate
+                            </Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setAiAssistantOpen(true)}
+                              className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-300 hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-400/50 transition-all duration-300"
+                            >
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Asistent AI
+                            </Button>
+                          </div>
                           <Textarea
                             value={formData.reported_issue}
                             onChange={(e) => setFormData({ ...formData, reported_issue: e.target.value })}
@@ -805,6 +826,20 @@ const ServiceDashboard = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* AI Assistant */}
+                    {aiAssistantOpen && (
+                      <div className="glass-effect rounded-2xl p-6 border border-white/10">
+                        <AIAssistant
+                          contextType="ticket_create"
+                          contextData={formData}
+                          onAutoFill={handleAIAutoFill}
+                          onClose={() => setAiAssistantOpen(false)}
+                          isOpen={aiAssistantOpen}
+                          title="Asistent AI - Creare Fișă"
+                        />
+                      </div>
+                    )}
 
                     <div className="flex items-center space-x-4 pt-4">
                       <Button
