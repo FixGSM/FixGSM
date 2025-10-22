@@ -320,9 +320,6 @@ const DashboardLayout = ({ children }) => {
                   if (item.action === 'createTicket') {
                     // Trigger create ticket action
                     window.dispatchEvent(new CustomEvent('createTicket'));
-                  } else if (item.action === 'statisticsAI') {
-                    // Trigger statistics AI action
-                    window.dispatchEvent(new CustomEvent('openStatisticsAI'));
                   } else {
                     navigate(item.path);
                   }

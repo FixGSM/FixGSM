@@ -21,6 +21,7 @@ import SettingsPage from '@/pages/service/SettingsPage';
 import ClientsPage from '@/pages/service/ClientsPage';
 import ClientDetailPage from '@/pages/service/ClientDetailPage';
 import AIChatPage from '@/pages/service/AIChatPage';
+import StatisticsPage from '@/pages/StatisticsPage';
 import ClientPortal from '@/pages/ClientPortal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -170,6 +171,14 @@ function App() {
             element={
               <ProtectedRoute allowedTypes={['tenant_owner', 'employee']}>
                 <AIChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/statistics-ai"
+            element={
+              <ProtectedRoute allowedTypes={['tenant_owner', 'employee']}>
+                <StatisticsPage />
               </ProtectedRoute>
             }
           />
