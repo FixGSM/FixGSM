@@ -17,6 +17,7 @@ import AnnouncementBanner from '@/components/AnnouncementBanner';
 import AIAssistant from '@/components/AIAssistant';
 import MessageGenerator from '@/components/MessageGenerator';
 import StatisticsAnalyzer from '@/components/StatisticsAnalyzer';
+import DeviceImage from '@/components/DeviceImage';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -1062,9 +1063,10 @@ const ServiceDashboard = () => {
                       >
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Smartphone className="w-5 h-5 text-white" />
-                            </div>
+                            <DeviceImage 
+                              deviceModel={ticket.device_model}
+                              className="w-10 h-10 flex-shrink-0"
+                            />
                             <div className="min-w-0">
                               <div className="text-white font-semibold text-sm">{ticket.ticket_id}</div>
                               <div className="text-slate-400 text-xs">{new Date(ticket.created_at).toLocaleDateString('ro-RO')}</div>
