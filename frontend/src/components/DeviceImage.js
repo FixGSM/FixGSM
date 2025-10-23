@@ -1,12 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Smartphone } from 'lucide-react';
 import { generateDeviceImageUrl } from '@/utils/deviceImageUtils';
 
 const DeviceImage = ({ deviceModel, className = "" }) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = generateDeviceImageUrl(deviceModel);
+  const [imageUrl, setImageUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  console.log('🖼️ DeviceImage render:', { deviceModel, imageUrl, imageError });
+  useEffect(() => {
+    const loadImage = async () => {
+      if (!deviceModel) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        console.log('🖼️ DeviceImage loading:', deviceModel);
+        setIsLoading(true);
+        setImageError(false);
+        
+        const url = await generateDeviceImageUrl(deviceModel);
+        setImageUrl(url);
+        
+        if (url) {
+          console.log('✅ Image URL loaded:', url);
+        } else {
+          console.log('❌ No image URL found for:', deviceModel);
+        }
+      } catch (error) {
+        console.log('❌ Error loading image URL:', error);
+        setImageError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadImage();
+  }, [deviceModel]);
+  
+  console.log('🖼️ DeviceImage render:', { deviceModel, imageUrl, imageError, isLoading });
+  
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className={`bg-gradient-to-br from-slate-500 to-slate-600 rounded-lg flex items-center justify-center ${className}`}>
+        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
   
   // Fallback to blue icon
   if (!imageUrl || imageError) {
