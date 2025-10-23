@@ -19,7 +19,6 @@ import {
   Sparkles,
   BarChart3
 } from 'lucide-react';
-import LanguageToggle from '@/components/LanguageToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const notifications = [
@@ -136,9 +135,6 @@ const DashboardLayout = ({ children }) => {
             )}
             {/* Notification Bell in Sidebar */}
             <div className="relative">
-              {/* Language Toggle */}
-              <LanguageToggle />
-              
               <button
                 className="relative w-10 h-10 flex items-center justify-center bg-gradient-to-br from-pink-500 via-fuchsia-500 to-cyan-500 shadow-lg rounded-xl border border-white/10 hover:scale-105 transition-all duration-150 focus:outline-none"
                 aria-label="Notificări"
