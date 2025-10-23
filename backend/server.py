@@ -900,7 +900,7 @@ async def get_statistics(current_user: dict = Depends(get_current_user)):
         
         # Calculate basic stats
         total_tickets = len(tickets)
-        completed_tickets = len([t for t in tickets if t.get("status", "").lower().includes("finalizat")])
+        completed_tickets = len([t for t in tickets if "finalizat" in t.get("status", "").lower()])
         total_revenue = sum(t.get("estimated_cost", 0) for t in tickets)
         
         # Get unique clients
