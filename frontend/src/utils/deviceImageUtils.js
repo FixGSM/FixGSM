@@ -18,12 +18,22 @@ const generatePossibleUrls = (deviceModel) => {
     // Samsung model code detection for better URL generation
     if (cleanModel.includes('galaxy a12')) {
       cleanModel = 'galaxy-a12-sm-a125';
+    } else if (cleanModel.includes('galaxy a17')) {
+      cleanModel = 'galaxy-a17-5g';
+    } else if (cleanModel.includes('galaxy a20')) {
+      cleanModel = 'galaxy-a20';
+    } else if (cleanModel.includes('galaxy a25')) {
+      cleanModel = 'galaxy-a25';
     } else if (cleanModel.includes('galaxy a32')) {
       cleanModel = 'galaxy-a32-sm-a325';
+    } else if (cleanModel.includes('galaxy a36')) {
+      cleanModel = 'galaxy-a36';
     } else if (cleanModel.includes('galaxy a52')) {
       cleanModel = 'galaxy-a52-sm-a525';
+    } else if (cleanModel.includes('galaxy a71')) {
+      cleanModel = 'galaxy-a71';
     } else if (cleanModel.includes('galaxy a72')) {
-      cleanModel = 'galaxy-a72-sm-a725';
+      cleanModel = 'galaxy-a72-4g';
     } else if (cleanModel.includes('galaxy s21')) {
       cleanModel = 'galaxy-s21-sm-g991';
     } else if (cleanModel.includes('galaxy s21 ultra')) {
@@ -36,8 +46,6 @@ const generatePossibleUrls = (deviceModel) => {
       cleanModel = 'galaxy-note20-sm-n980';
     } else if (cleanModel.includes('galaxy a70')) {
       cleanModel = 'galaxy-a70-sm-a705';
-    } else if (cleanModel.includes('galaxy a71')) {
-      cleanModel = 'galaxy-a71-sm-a715';
     }
   } else if (model.includes('xiaomi')) {
     brand = 'xiaomi';
