@@ -1,5 +1,10 @@
 export const generateDeviceImageUrl = (deviceModel) => {
-  if (!deviceModel) return null;
+  console.log('🔍 generateDeviceImageUrl called with:', deviceModel);
+  
+  if (!deviceModel) {
+    console.log('❌ deviceModel is null/empty, returning null');
+    return null;
+  }
   
   // Smart algorithm like competitor - clean the entire model name
   const cleanModel = deviceModel
@@ -10,6 +15,8 @@ export const generateDeviceImageUrl = (deviceModel) => {
     .replace(/-+/g, '-') // Remove duplicate hyphens
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
   
-  // Generate URL directly (no manual brand mapping needed)
-  return `https://fdn2.gsmarena.com/vv/bigpic/${cleanModel}.jpg`;
+  const imageUrl = `https://fdn2.gsmarena.com/vv/bigpic/${cleanModel}.jpg`;
+  console.log('✅ Generated URL:', imageUrl);
+  
+  return imageUrl;
 };
