@@ -1,84 +1,6 @@
 // Cache pentru URL-uri deja găsite
 const imageUrlCache = new Map();
 
-// Funcție pentru a testa dacă o imagine există
-const testImageUrl = async (url) => {
-  try {
-    const response = await fetch(url, { method: 'HEAD' });
-    return response.ok;
-  } catch {
-    return false;
-  }
-};
-
-// Funcție pentru a căuta pe GSM Arena
-const searchGSMArena = async (deviceModel) => {
-  try {
-    console.log('🔍 Searching GSM Arena for:', deviceModel);
-    
-    // Construiește URL-ul de căutare
-    const searchUrl = `https://www.gsmarena.com/results.php3?sQuickSearch=yes&sName=${encodeURIComponent(deviceModel)}`;
-    
-    // Face request către GSM Arena
-    const response = await fetch(searchUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    if (!response.ok) {
-      console.log('❌ GSM Arena search failed:', response.status);
-      return null;
-    }
-    
-    const html = await response.text();
-    
-    // Parse HTML pentru a găsi link-ul către pagina dispozitivului
-    const escapedModel = deviceModel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const devicePageMatch = html.match(new RegExp(`href="([^"]*\\.php)"[^>]*>([^<]*${escapedModel}[^<]*)<`, 'i'));
-    
-    if (!devicePageMatch) {
-      console.log('❌ Device not found on GSM Arena');
-      return null;
-    }
-    
-    const devicePageUrl = `https://www.gsmarena.com/${devicePageMatch[1]}`;
-    console.log('📱 Found device page:', devicePageUrl);
-    
-    // Face request către pagina dispozitivului
-    const deviceResponse = await fetch(devicePageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    if (!deviceResponse.ok) {
-      console.log('❌ Device page failed:', deviceResponse.status);
-      return null;
-    }
-    
-    const deviceHtml = await deviceResponse.text();
-    
-    // Parse pentru a găsi URL-ul imaginii
-    const imageMatch = deviceHtml.match(/https:\/\/fdn2\.gsmarena\.com\/vv\/bigpic\/[^"]*\.jpg/);
-    
-    if (!imageMatch) {
-      console.log('❌ Image URL not found on device page');
-      return null;
-    }
-    
-    const imageUrl = imageMatch[0];
-    console.log('✅ Found image URL:', imageUrl);
-    
-    return imageUrl;
-    
-  } catch (error) {
-    console.log('❌ GSM Arena search error:', error);
-    return null;
-  }
-};
-
 // Funcție pentru a genera URL-uri posibile
 const generatePossibleUrls = (deviceModel) => {
   const model = deviceModel.toLowerCase().trim();
@@ -144,8 +66,8 @@ const generatePossibleUrls = (deviceModel) => {
   return urls;
 };
 
-// Funcție principală cu căutare inteligentă
-export const generateDeviceImageUrl = async (deviceModel) => {
+// Funcție principală simplificată (fără testare CORS)
+export const generateDeviceImageUrl = (deviceModel) => {
   console.log('🔍 generateDeviceImageUrl called with:', deviceModel);
   
   if (!deviceModel) {
@@ -163,26 +85,11 @@ export const generateDeviceImageUrl = async (deviceModel) => {
   const possibleUrls = generatePossibleUrls(deviceModel);
   console.log('🔗 Generated possible URLs:', possibleUrls);
   
-  // Testează URL-urile posibile
-  for (const url of possibleUrls) {
-    console.log('🧪 Testing URL:', url);
-    if (await testImageUrl(url)) {
-      console.log('✅ Found working URL:', url);
-      imageUrlCache.set(deviceModel, url);
-      return url;
-    }
-  }
+  // Returnează primul URL (cel mai probabil să funcționeze)
+  const bestUrl = possibleUrls[0];
+  console.log('✅ Using best URL:', bestUrl);
   
-  // Dacă nu găsește nimic, caută pe GSM Arena
-  console.log('🔍 No standard URL worked, searching GSM Arena...');
-  const gsmArenaUrl = await searchGSMArena(deviceModel);
-  
-  if (gsmArenaUrl) {
-    console.log('✅ Found URL via GSM Arena search:', gsmArenaUrl);
-    imageUrlCache.set(deviceModel, gsmArenaUrl);
-    return gsmArenaUrl;
-  }
-  
-  console.log('❌ No image found for:', deviceModel);
-  return null;
+  // Cache URL-ul
+  imageUrlCache.set(deviceModel, bestUrl);
+  return bestUrl;
 };
