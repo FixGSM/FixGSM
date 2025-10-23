@@ -35,7 +35,8 @@ const searchGSMArena = async (deviceModel) => {
     const html = await response.text();
     
     // Parse HTML pentru a găsi link-ul către pagina dispozitivului
-    const devicePageMatch = html.match(/href="([^"]*\.php)"[^>]*>([^<]*${deviceModel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^<]*)</i);
+    const escapedModel = deviceModel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const devicePageMatch = html.match(new RegExp(`href="([^"]*\\.php)"[^>]*>([^<]*${escapedModel}[^<]*)<`, 'i'));
     
     if (!devicePageMatch) {
       console.log('❌ Device not found on GSM Arena');
